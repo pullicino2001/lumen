@@ -5,6 +5,7 @@ import '../../../core/models/basic_editor_settings.dart';
 import '../../../core/models/edit_state.dart';
 import '../../../core/providers/shader_provider.dart';
 import '../../../core/providers/preview_image_provider.dart';
+import '../../../core/providers/lut_provider.dart';
 
 /// Live GPU preview — repaints on every slider change via [BasicEditorSettings].
 class ShaderPreview extends ConsumerWidget {
@@ -16,6 +17,7 @@ class ShaderPreview extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final programAsync = ref.watch(basicEditorProgramProvider);
     final imageAsync = ref.watch(previewImageProvider);
+    final lutAsync = ref.watch(lutImageProvider);
 
     return programAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -25,16 +27,30 @@ class ShaderPreview extends ConsumerWidget {
         error: (e, st) => const Center(child: Icon(Icons.broken_image_outlined)),
         data: (image) {
           if (image == null) return const SizedBox.shrink();
-          final settings = editState.basicEditorEnabled
-              ? editState.basicEditor
-              : const BasicEditorSettings();
-          return CustomPaint(
-            painter: _BasicEditorPainter(
-              shader: program.fragmentShader(),
-              image: image,
-              settings: settings,
-            ),
-            child: const SizedBox.expand(),
+          return lutAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, st) => const Center(child: Icon(Icons.broken_image_outlined)),
+            data: (lutData) {
+              final (lutImage, lutSize) = lutData;
+              final settings = editState.basicEditorEnabled
+                  ? editState.basicEditor
+                  : const BasicEditorSettings();
+              final lutIntensity =
+                  (editState.filmLookEnabled && editState.filmLook != null)
+                      ? editState.filmLook!.intensity / 100.0
+                      : 0.0;
+              return CustomPaint(
+                painter: _BasicEditorPainter(
+                  shader: program.fragmentShader(),
+                  image: image,
+                  settings: settings,
+                  lutImage: lutImage,
+                  lutSize: lutSize,
+                  lutIntensity: lutIntensity,
+                ),
+                child: const SizedBox.expand(),
+              );
+            },
           );
         },
       ),
@@ -47,15 +63,20 @@ class _BasicEditorPainter extends CustomPainter {
     required this.shader,
     required this.image,
     required this.settings,
+    required this.lutImage,
+    required this.lutSize,
+    required this.lutIntensity,
   });
 
   final ui.FragmentShader shader;
   final ui.Image image;
   final BasicEditorSettings settings;
+  final ui.Image lutImage;
+  final double lutSize;
+  final double lutIntensity;
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Letterbox: preserve image aspect ratio within the available area.
     final imgW = image.width.toDouble();
     final imgH = image.height.toDouble();
     final imgAspect = imgW / imgH;
@@ -70,26 +91,32 @@ class _BasicEditorPainter extends CustomPainter {
       drawRect = Rect.fromLTWH((size.width - w) / 2, 0, w, size.height);
     }
 
-    shader.setFloat(0, drawRect.width);
-    shader.setFloat(1, drawRect.height);
-    shader.setFloat(2, drawRect.left);
-    shader.setFloat(3, drawRect.top);
-    shader.setFloat(4, settings.exposure);
-    shader.setFloat(5, settings.contrast);
-    shader.setFloat(6, settings.highlights);
-    shader.setFloat(7, settings.shadows);
-    shader.setFloat(8, settings.whites);
-    shader.setFloat(9, settings.blacks);
+    shader.setFloat(0,  drawRect.width);
+    shader.setFloat(1,  drawRect.height);
+    shader.setFloat(2,  drawRect.left);
+    shader.setFloat(3,  drawRect.top);
+    shader.setFloat(4,  settings.exposure);
+    shader.setFloat(5,  settings.contrast);
+    shader.setFloat(6,  settings.highlights);
+    shader.setFloat(7,  settings.shadows);
+    shader.setFloat(8,  settings.whites);
+    shader.setFloat(9,  settings.blacks);
     shader.setFloat(10, settings.temperature);
     shader.setFloat(11, settings.tint);
     shader.setFloat(12, settings.saturation);
     shader.setFloat(13, settings.vibrance);
+    shader.setFloat(14, lutSize);
+    shader.setFloat(15, lutIntensity);
     shader.setImageSampler(0, image);
+    shader.setImageSampler(1, lutImage);
 
     canvas.drawRect(drawRect, Paint()..shader = shader);
   }
 
   @override
   bool shouldRepaint(_BasicEditorPainter old) =>
-      old.settings != settings || old.image != image;
+      old.settings != settings ||
+      old.image != image ||
+      old.lutImage != lutImage ||
+      old.lutIntensity != lutIntensity;
 }

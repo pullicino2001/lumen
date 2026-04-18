@@ -6,6 +6,7 @@ import '../../../core/services/format_ingestion_service.dart';
 import '../../../core/services/effect_engine.dart';
 import '../../../core/services/export_service.dart';
 import '../widgets/basic_editor_panel.dart';
+import '../widgets/film_look_strip.dart';
 import '../widgets/generate_button.dart';
 import '../widgets/shader_preview.dart';
 
@@ -107,6 +108,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
+                    const FilmLookStrip(),
+                    const Divider(height: 24),
                     BasicEditorPanel(editState: editState),
                     const SizedBox(height: 16),
                     const GenerateButton(),

@@ -1,7 +1,7 @@
 #include <flutter/runtime_effect.glsl>
 
-uniform vec2 uSize;
-uniform vec2 uOffset;
+uniform vec2  uSize;
+uniform vec2  uOffset;
 uniform float uExposure;
 uniform float uContrast;
 uniform float uHighlights;
@@ -12,7 +12,10 @@ uniform float uTemperature;
 uniform float uTint;
 uniform float uSaturation;
 uniform float uVibrance;
+uniform float uLutSize;
+uniform float uLutIntensity;
 uniform sampler2D uTexture;
+uniform sampler2D uLut;
 
 out vec4 fragColor;
 
@@ -53,6 +56,33 @@ vec3 hsl2rgb(vec3 c) {
     hue2rgb(p, q, c.x + 1.0 / 3.0),
     hue2rgb(p, q, c.x),
     hue2rgb(p, q, c.x - 1.0 / 3.0)
+  );
+}
+
+// Manual trilinear interpolation — avoids B-slice boundary artifacts.
+vec3 sampleLut(vec3 c) {
+  float n = uLutSize;
+  float tw = n * n;
+  vec3 sc = clamp(c, 0.0, 1.0) * (n - 1.0);
+
+  float r0 = floor(sc.r); float r1 = min(r0 + 1.0, n - 1.0);
+  float g0 = floor(sc.g); float g1 = min(g0 + 1.0, n - 1.0);
+  float b0 = floor(sc.b); float b1 = min(b0 + 1.0, n - 1.0);
+  float rf = fract(sc.r); float gf = fract(sc.g); float bf = fract(sc.b);
+
+  vec3 c000 = texture(uLut, vec2((b0*n+r0+0.5)/tw, (g0+0.5)/n)).rgb;
+  vec3 c100 = texture(uLut, vec2((b0*n+r1+0.5)/tw, (g0+0.5)/n)).rgb;
+  vec3 c010 = texture(uLut, vec2((b0*n+r0+0.5)/tw, (g1+0.5)/n)).rgb;
+  vec3 c110 = texture(uLut, vec2((b0*n+r1+0.5)/tw, (g1+0.5)/n)).rgb;
+  vec3 c001 = texture(uLut, vec2((b1*n+r0+0.5)/tw, (g0+0.5)/n)).rgb;
+  vec3 c101 = texture(uLut, vec2((b1*n+r1+0.5)/tw, (g0+0.5)/n)).rgb;
+  vec3 c011 = texture(uLut, vec2((b1*n+r0+0.5)/tw, (g1+0.5)/n)).rgb;
+  vec3 c111 = texture(uLut, vec2((b1*n+r1+0.5)/tw, (g1+0.5)/n)).rgb;
+
+  return mix(
+    mix(mix(c000, c100, rf), mix(c010, c110, rf), gf),
+    mix(mix(c001, c101, rf), mix(c011, c111, rf), gf),
+    bf
   );
 }
 
@@ -97,6 +127,9 @@ void main() {
   hsl = rgb2hsl(c);
   hsl.y = clamp(hsl.y + (1.0 - hsl.y) * (uVibrance / 100.0) * 0.5, 0.0, 1.0);
   c = hsl2rgb(hsl);
+
+  // Film look LUT pass
+  c = mix(c, sampleLut(c), uLutIntensity);
 
   fragColor = vec4(clamp(c, 0.0, 1.0), original.a);
 }

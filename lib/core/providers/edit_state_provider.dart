@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/edit_state.dart';
 import '../models/basic_editor_settings.dart';
+import '../models/film_look.dart';
 
 /// Notifier that manages the full [EditState] for the active edit session.
 ///
@@ -28,6 +29,11 @@ class EditStateNotifier extends Notifier<EditState?> {
   /// Toggles the basic editor layer on/off.
   void toggleBasicEditor() {
     state = state?.copyWith(basicEditorEnabled: !(state?.basicEditorEnabled ?? true));
+  }
+
+  /// Sets the active film look. Pass null to clear.
+  void setFilmLook(FilmLook? look) {
+    state = state?.copyWith(filmLook: look);
   }
 
   /// Toggles the film look layer on/off.

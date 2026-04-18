@@ -72,16 +72,18 @@ class _BasicEditorPainter extends CustomPainter {
 
     shader.setFloat(0, drawRect.width);
     shader.setFloat(1, drawRect.height);
-    shader.setFloat(2, settings.exposure);
-    shader.setFloat(3, settings.contrast);
-    shader.setFloat(4, settings.highlights);
-    shader.setFloat(5, settings.shadows);
-    shader.setFloat(6, settings.whites);
-    shader.setFloat(7, settings.blacks);
-    shader.setFloat(8, settings.temperature);
-    shader.setFloat(9, settings.tint);
-    shader.setFloat(10, settings.saturation);
-    shader.setFloat(11, settings.vibrance);
+    shader.setFloat(2, drawRect.left);
+    shader.setFloat(3, drawRect.top);
+    shader.setFloat(4, settings.exposure);
+    shader.setFloat(5, settings.contrast);
+    shader.setFloat(6, settings.highlights);
+    shader.setFloat(7, settings.shadows);
+    shader.setFloat(8, settings.whites);
+    shader.setFloat(9, settings.blacks);
+    shader.setFloat(10, settings.temperature);
+    shader.setFloat(11, settings.tint);
+    shader.setFloat(12, settings.saturation);
+    shader.setFloat(13, settings.vibrance);
     shader.setImageSampler(0, image);
 
     canvas.drawRect(drawRect, Paint()..shader = shader);

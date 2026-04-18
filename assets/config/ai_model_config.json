@@ -1,0 +1,22 @@
+{
+  "generation": {
+    "provider": "replicate",
+    "model_id": "black-forest-labs/flux-1.1-pro",
+    "endpoint": "https://api.replicate.com/v1/predictions",
+    "api_key_env": "LUMEN_GENERATION_API_KEY",
+    "parameters": {
+      "strength": 0.75,
+      "guidance_scale": 7.5
+    }
+  },
+  "enhancement": {
+    "provider": "replicate",
+    "model_id": "nightmareai/real-esrgan",
+    "endpoint": "https://api.replicate.com/v1/predictions",
+    "api_key_env": "LUMEN_ENHANCEMENT_API_KEY",
+    "parameters": {
+      "scale": 2,
+      "face_enhance": false
+    }
+  }
+}

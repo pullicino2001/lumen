@@ -1,0 +1,62 @@
+name: lumen
+description: "A darkroom for every camera"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+
+  # Immutable models (copyWith, ==, toJson)
+  freezed_annotation: ^2.4.4
+  json_annotation: ^4.9.0
+
+  # Image decoding/encoding — core of the pipeline
+  image: ^4.3.0
+
+  # Photo/file picker — import from camera roll and filesystem
+  file_picker: ^8.1.7
+
+  # App temp/documents directory — stores working DNG
+  path_provider: ^2.1.5
+
+  # Path utilities — joining, extensions, basename
+  path: ^1.9.1
+
+  # Logging — used for graceful-disable warnings in AI config service
+  logger: ^2.5.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+  # Code generation for Riverpod providers
+  riverpod_generator: ^2.6.2
+  build_runner: ^2.4.13
+
+  # Code generation for freezed models
+  freezed: ^2.5.8
+
+  # Code generation for JSON serialisation
+  json_serializable: ^6.9.2
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/luts/
+    - assets/lens_profiles/
+    - assets/config/
+
+  shaders:
+    - assets/shaders/basic_editor.frag

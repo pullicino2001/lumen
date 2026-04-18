@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/edit_state.dart';
 import '../models/basic_editor_settings.dart';
 import '../models/film_look.dart';
+import '../models/grain_settings.dart';
+import '../models/lens_profile.dart';
 
 /// Notifier that manages the full [EditState] for the active edit session.
 ///
@@ -34,6 +36,16 @@ class EditStateNotifier extends Notifier<EditState?> {
   /// Sets the active film look. Pass null to clear.
   void setFilmLook(FilmLook? look) {
     state = state?.copyWith(filmLook: look);
+  }
+
+  /// Sets the active lens profile. Pass null to clear.
+  void setLensProfile(LensProfile? profile) {
+    state = state?.copyWith(lensProfile: profile);
+  }
+
+  /// Updates grain settings.
+  void updateGrain(GrainSettings settings) {
+    state = state?.copyWith(grain: settings);
   }
 
   /// Toggles the film look layer on/off.

@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/providers/edit_state_provider.dart';
+import '../../../core/providers/shader_provider.dart';
+import '../../../core/providers/lut_provider.dart';
+import '../../../core/providers/preview_image_provider.dart';
 import '../../../core/services/format_ingestion_service.dart';
 import '../../../core/services/effect_engine.dart';
 import '../../../core/services/export_service.dart';
 import '../widgets/basic_editor_panel.dart';
 import '../widgets/film_look_strip.dart';
+import '../widgets/grain_panel.dart';
+import '../widgets/lens_profile_strip.dart';
 import '../widgets/generate_button.dart';
 import '../widgets/shader_preview.dart';
 
@@ -50,7 +55,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (state == null) return;
     setState(() => _exporting = true);
     try {
-      final processed = await EffectEngine().apply(state);
+      final program     = await ref.read(basicEditorProgramProvider.future);
+      final (lutImage, lutSize) = await ref.read(lutImageProvider.future);
+      final sourceImage = await ref.read(previewImageProvider.future);
+      if (sourceImage == null) return;
+
+      final processed = await EffectEngine().apply(
+        state:       state,
+        sourceImage: sourceImage,
+        program:     program,
+        lutImage:    lutImage,
+        lutSize:     lutSize,
+      );
       final outputPath = await ExportService().export(processed, state);
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -69,7 +85,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   @override
   Widget build(BuildContext context) {
     final editState = ref.watch(editStateProvider);
-    final hasPhoto = editState != null;
+    final hasPhoto  = editState != null;
 
     return Scaffold(
       appBar: AppBar(
@@ -111,6 +127,10 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     const FilmLookStrip(),
                     const Divider(height: 24),
                     BasicEditorPanel(editState: editState),
+                    const Divider(height: 24),
+                    GrainPanel(editState: editState),
+                    const Divider(height: 24),
+                    const LensProfileStrip(),
                     const SizedBox(height: 16),
                     const GenerateButton(),
                   ],
@@ -135,7 +155,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             ),
     );
   }
-
 }
 
 class _ImportPrompt extends StatelessWidget {

@@ -1,23 +1,39 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:logger/logger.dart';
 import '../models/edit_state.dart';
 
-/// Exports the final processed image to the device's pictures directory.
+/// Encodes a GPU-rendered [ui.Image] to JPEG and saves it to the LUMEN folder.
 class ExportService {
   ExportService();
 
   static final _log = Logger();
 
-  /// Exports [processedImage] derived from [state] as a full-resolution JPEG.
-  ///
-  /// Returns the path of the saved file.
-  Future<String> export(img.Image processedImage, EditState state) async {
+  Future<String> export(ui.Image processedImage, EditState state) async {
+    final byteData = await processedImage.toByteData(
+      format: ui.ImageByteFormat.rawRgba,
+    );
+    final buffer = byteData!.buffer;
+
+    final imgImage = img.Image.fromBytes(
+      width: processedImage.width,
+      height: processedImage.height,
+      bytes: buffer,
+      numChannels: 4,
+      order: img.ChannelOrder.rgba,
+    );
+
+    final encoded = img.encodeJpg(imgImage, quality: 97);
+
     final picturesDir = await getExternalStorageDirectory();
     final outputDir = Directory(
-      p.join(picturesDir?.path ?? (await getApplicationDocumentsDirectory()).path, 'LUMEN'),
+      p.join(
+        picturesDir?.path ?? (await getApplicationDocumentsDirectory()).path,
+        'LUMEN',
+      ),
     );
     await outputDir.create(recursive: true);
 
@@ -25,10 +41,8 @@ class ExportService {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final outputPath = p.join(outputDir.path, '${baseName}_lumen_$timestamp.jpg');
 
-    final encoded = img.encodeJpg(processedImage, quality: 97);
     await File(outputPath).writeAsBytes(encoded);
-
-    _log.d('ExportService: saved to $outputPath');
+    _log.d('ExportService: saved $outputPath');
     return outputPath;
   }
 }

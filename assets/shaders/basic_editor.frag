@@ -1,6 +1,7 @@
 #include <flutter/runtime_effect.glsl>
 
 uniform vec2 uSize;
+uniform vec2 uOffset;
 uniform float uExposure;
 uniform float uContrast;
 uniform float uHighlights;
@@ -56,7 +57,7 @@ vec3 hsl2rgb(vec3 c) {
 }
 
 void main() {
-  vec2 uv = FlutterFragCoord().xy / uSize;
+  vec2 uv = (FlutterFragCoord().xy - uOffset) / uSize;
   vec4 original = texture(uTexture, uv);
   vec3 c = original.rgb;
 

@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/providers/edit_state_provider.dart';
 import '../../../core/providers/shader_provider.dart';
-import '../../../core/providers/lut_provider.dart';
 import '../../../core/providers/preview_image_provider.dart';
 import '../../../core/providers/bloom_shader_provider.dart';
 import '../../../core/services/format_ingestion_service.dart';
@@ -11,7 +10,7 @@ import '../../../core/services/effect_engine.dart';
 import '../../../core/services/export_service.dart';
 import '../widgets/basic_editor_panel.dart';
 import '../widgets/bloom_panel.dart';
-import '../widgets/film_look_strip.dart';
+import '../widgets/stock_strip.dart';
 import '../widgets/grain_panel.dart';
 import '../widgets/lens_profile_strip.dart';
 import '../widgets/generate_button.dart';
@@ -57,18 +56,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (state == null) return;
     setState(() => _exporting = true);
     try {
-      final program            = await ref.read(basicEditorProgramProvider.future);
-      final (lutImage, lutSize) = await ref.read(lutImageProvider.future);
-      final sourceImage        = await ref.read(previewImageProvider.future);
-      final bloomPrograms      = await ref.read(bloomProgramsProvider.future);
+      final program       = await ref.read(basicEditorProgramProvider.future);
+      final sourceImage   = await ref.read(previewImageProvider.future);
+      final bloomPrograms = await ref.read(bloomProgramsProvider.future);
       if (sourceImage == null) return;
 
       final processed = await EffectEngine().apply(
         state:         state,
         sourceImage:   sourceImage,
         program:       program,
-        lutImage:      lutImage,
-        lutSize:       lutSize,
         bloomPrograms: bloomPrograms,
       );
       final outputPath = await ExportService().export(processed, state);
@@ -128,7 +124,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    const FilmLookStrip(),
+                    const StockStrip(),
                     const Divider(height: 24),
                     BasicEditorPanel(editState: editState),
                     const Divider(height: 24),

@@ -13,8 +13,8 @@ class GenerationPromptBuilder {
     final parts = <String>[
       if (state.lensProfile != null && state.lensEnabled)
         state.lensProfile!.toPromptFragment(),
-      if (state.filmLook != null && state.filmLookEnabled)
-        state.filmLook!.toPromptFragment(),
+      if (state.filmStock != null && state.stockEnabled)
+        state.filmStock!.toPromptFragment(),
       if (state.grainEnabled) state.grain.toPromptFragment(),
       if (state.bloomEnabled) state.bloom.toPromptFragment(),
       if (state.basicEditorEnabled) state.basicEditor.toPromptFragment(),

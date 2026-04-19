@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/data/film_looks.dart';
-import '../../../core/models/film_look.dart';
+import '../../../core/data/film_stocks.dart';
+import '../../../core/models/film_stock.dart';
 import '../../../core/providers/edit_state_provider.dart';
 
-/// Horizontally scrollable film look selector strip.
-class FilmLookStrip extends ConsumerWidget {
-  const FilmLookStrip({super.key});
+/// Horizontally scrollable film stock selector strip.
+class StockStrip extends ConsumerWidget {
+  const StockStrip({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final activeLook = ref.watch(
-      editStateProvider.select((s) => s?.filmLook),
+    final activeStock = ref.watch(
+      editStateProvider.select((s) => s?.filmStock),
     );
     final enabled = ref.watch(
-      editStateProvider.select((s) => s?.filmLookEnabled ?? true),
+      editStateProvider.select((s) => s?.stockEnabled ?? true),
     );
 
     return Column(
@@ -22,12 +22,12 @@ class FilmLookStrip extends ConsumerWidget {
       children: [
         Row(
           children: [
-            Text('Film Look', style: Theme.of(context).textTheme.titleSmall),
+            Text('Stocks', style: Theme.of(context).textTheme.titleSmall),
             const Spacer(),
             Switch(
               value: enabled,
               onChanged: (_) =>
-                  ref.read(editStateProvider.notifier).toggleFilmLook(),
+                  ref.read(editStateProvider.notifier).toggleStock(),
             ),
           ],
         ),
@@ -35,47 +35,49 @@ class FilmLookStrip extends ConsumerWidget {
           height: 72,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            itemCount: kFilmLooks.length + 1, // +1 for "None"
+            itemCount: kFilmStocks.length + 1,
             separatorBuilder: (ctx, idx) => const SizedBox(width: 8),
             itemBuilder: (context, index) {
               if (index == 0) {
-                return _LookChip(
+                return _StockChip(
                   label: 'None',
-                  selected: activeLook == null,
+                  selected: activeStock == null,
                   color: Colors.grey,
                   onTap: () =>
-                      ref.read(editStateProvider.notifier).setFilmLook(null),
+                      ref.read(editStateProvider.notifier).setStock(null),
                 );
               }
-              final look = kFilmLooks[index - 1];
-              return _LookChip(
-                label: look.name,
-                selected: activeLook?.id == look.id,
-                color: _accentFor(look.id),
+              final stock = kFilmStocks[index - 1];
+              return _StockChip(
+                label: stock.name,
+                selected: activeStock?.id == stock.id,
+                color: _accentFor(stock.id),
                 onTap: () =>
-                    ref.read(editStateProvider.notifier).setFilmLook(look),
+                    ref.read(editStateProvider.notifier).setStock(stock),
               );
             },
           ),
         ),
-        if (activeLook != null && enabled) ...[
+        if (activeStock != null && enabled) ...[
           const SizedBox(height: 4),
-          _IntensityRow(look: activeLook),
+          _IntensityRow(stock: activeStock),
         ],
       ],
     );
   }
 
   Color _accentFor(String id) => switch (id) {
-        'warm_fade' => const Color(0xFFD4A05A),
-        'cool_mist' => const Color(0xFF5A9AD4),
-        'noir'      => const Color(0xFF888888),
-        _           => const Color(0xFFD4AF37),
+        'portra_400'     => const Color(0xFFD4A05A),
+        'gold_200'       => const Color(0xFFFFBB33),
+        'cinestill_800t' => const Color(0xFFFF6633),
+        'superia_400'    => const Color(0xFF66BB66),
+        'trix_400'       => const Color(0xFF888888),
+        _                => const Color(0xFFD4AF37),
       };
 }
 
-class _LookChip extends StatelessWidget {
-  const _LookChip({
+class _StockChip extends StatelessWidget {
+  const _StockChip({
     required this.label,
     required this.selected,
     required this.color,
@@ -133,8 +135,8 @@ class _LookChip extends StatelessWidget {
 }
 
 class _IntensityRow extends ConsumerWidget {
-  const _IntensityRow({required this.look});
-  final FilmLook look;
+  const _IntensityRow({required this.stock});
+  final FilmStock stock;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -146,19 +148,19 @@ class _IntensityRow extends ConsumerWidget {
         ),
         Expanded(
           child: Slider(
-            value: look.intensity.clamp(0.0, 100.0),
+            value: stock.intensity.clamp(0.0, 100.0),
             min: 0,
             max: 100,
             onChanged: (v) {
-              final updated = look.copyWith(intensity: v);
-              ref.read(editStateProvider.notifier).setFilmLook(updated);
+              final updated = stock.copyWith(intensity: v);
+              ref.read(editStateProvider.notifier).setStock(updated);
             },
           ),
         ),
         SizedBox(
           width: 42,
           child: Text(
-            look.intensity.toStringAsFixed(0),
+            stock.intensity.toStringAsFixed(0),
             textAlign: TextAlign.right,
             style: Theme.of(context).textTheme.bodySmall,
           ),

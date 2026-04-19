@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/edit_state.dart';
 import '../models/basic_editor_settings.dart';
-import '../models/film_look.dart';
+import '../models/film_stock.dart';
 import '../models/bloom_settings.dart';
 import '../models/grain_settings.dart';
 import '../models/lens_profile.dart';
@@ -34,9 +34,9 @@ class EditStateNotifier extends Notifier<EditState?> {
     state = state?.copyWith(basicEditorEnabled: !(state?.basicEditorEnabled ?? true));
   }
 
-  /// Sets the active film look. Pass null to clear.
-  void setFilmLook(FilmLook? look) {
-    state = state?.copyWith(filmLook: look);
+  /// Sets the active film stock. Pass null to clear.
+  void setStock(FilmStock? stock) {
+    state = state?.copyWith(filmStock: stock);
   }
 
   /// Sets the active lens profile. Pass null to clear.
@@ -54,9 +54,9 @@ class EditStateNotifier extends Notifier<EditState?> {
     state = state?.copyWith(bloom: settings);
   }
 
-  /// Toggles the film look layer on/off.
-  void toggleFilmLook() {
-    state = state?.copyWith(filmLookEnabled: !(state?.filmLookEnabled ?? true));
+  /// Toggles the stock layer on/off.
+  void toggleStock() {
+    state = state?.copyWith(stockEnabled: !(state?.stockEnabled ?? true));
   }
 
   /// Toggles the grain layer on/off.

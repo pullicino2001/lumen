@@ -2,13 +2,12 @@ import 'dart:ui' as ui;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'edit_state_provider.dart';
 import 'preview_image_provider.dart';
-import 'lut_provider.dart';
 import 'shader_provider.dart';
 import 'bloom_shader_provider.dart';
 import '../services/effect_engine.dart';
 import '../services/bloom_service.dart';
 
-/// Renders the full effect pipeline (basic editor → LUT → grain → lens → bloom)
+/// Renders the full effect pipeline (basic editor → stock → grain → lens → bloom)
 /// to a [ui.Image] every time [editStateProvider] changes.
 ///
 /// The widget layer caches the last resolved image so the display never blanks
@@ -21,14 +20,10 @@ final renderedPreviewProvider = FutureProvider<ui.Image?>((ref) async {
   final source  = await ref.watch(previewImageProvider.future);
   if (source == null) return null;
 
-  final (lutImage, lutSize) = await ref.watch(lutImageProvider.future);
-
   final processed = await EffectEngine().apply(
     state:       state,
     sourceImage: source,
     program:     program,
-    lutImage:    lutImage,
-    lutSize:     lutSize,
   );
 
   final bloomActive = state.bloomEnabled &&
@@ -36,9 +31,14 @@ final renderedPreviewProvider = FutureProvider<ui.Image?>((ref) async {
   if (!bloomActive) return processed;
 
   final programs = await ref.watch(bloomProgramsProvider.future);
+  final halationTint = (state.stockEnabled && state.filmStock != null)
+      ? state.filmStock!.halationTint
+      : null;
+
   return BloomService().apply(
-    source:   processed,
-    settings: state.bloom,
-    programs: programs,
+    source:            processed,
+    settings:          state.bloom,
+    programs:          programs,
+    stockHalationTint: halationTint,
   );
 });

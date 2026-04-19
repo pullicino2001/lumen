@@ -33,8 +33,8 @@ mixin _$EditState {
   /// Active lens profile. Null means lens layer is bypassed.
   LensProfile? get lensProfile => throw _privateConstructorUsedError;
 
-  /// Active film look. Null means the LUT layer is bypassed.
-  FilmLook? get filmLook => throw _privateConstructorUsedError;
+  /// Active film stock. Null means the stock layer is bypassed.
+  FilmStock? get filmStock => throw _privateConstructorUsedError;
 
   /// Grain simulation parameters.
   GrainSettings get grain => throw _privateConstructorUsedError;
@@ -43,7 +43,7 @@ mixin _$EditState {
   BloomSettings get bloom =>
       throw _privateConstructorUsedError; // — Layer toggles —
   bool get lensEnabled => throw _privateConstructorUsedError;
-  bool get filmLookEnabled => throw _privateConstructorUsedError;
+  bool get stockEnabled => throw _privateConstructorUsedError;
   bool get grainEnabled => throw _privateConstructorUsedError;
   bool get bloomEnabled => throw _privateConstructorUsedError;
   bool get basicEditorEnabled =>
@@ -72,11 +72,11 @@ abstract class $EditStateCopyWith<$Res> {
     String workingFilePath,
     BasicEditorSettings basicEditor,
     LensProfile? lensProfile,
-    FilmLook? filmLook,
+    FilmStock? filmStock,
     GrainSettings grain,
     BloomSettings bloom,
     bool lensEnabled,
-    bool filmLookEnabled,
+    bool stockEnabled,
     bool grainEnabled,
     bool bloomEnabled,
     bool basicEditorEnabled,
@@ -85,7 +85,7 @@ abstract class $EditStateCopyWith<$Res> {
 
   $BasicEditorSettingsCopyWith<$Res> get basicEditor;
   $LensProfileCopyWith<$Res>? get lensProfile;
-  $FilmLookCopyWith<$Res>? get filmLook;
+  $FilmStockCopyWith<$Res>? get filmStock;
   $GrainSettingsCopyWith<$Res> get grain;
   $BloomSettingsCopyWith<$Res> get bloom;
 }
@@ -109,11 +109,11 @@ class _$EditStateCopyWithImpl<$Res, $Val extends EditState>
     Object? workingFilePath = null,
     Object? basicEditor = null,
     Object? lensProfile = freezed,
-    Object? filmLook = freezed,
+    Object? filmStock = freezed,
     Object? grain = null,
     Object? bloom = null,
     Object? lensEnabled = null,
-    Object? filmLookEnabled = null,
+    Object? stockEnabled = null,
     Object? grainEnabled = null,
     Object? bloomEnabled = null,
     Object? basicEditorEnabled = null,
@@ -137,10 +137,10 @@ class _$EditStateCopyWithImpl<$Res, $Val extends EditState>
                 ? _value.lensProfile
                 : lensProfile // ignore: cast_nullable_to_non_nullable
                       as LensProfile?,
-            filmLook: freezed == filmLook
-                ? _value.filmLook
-                : filmLook // ignore: cast_nullable_to_non_nullable
-                      as FilmLook?,
+            filmStock: freezed == filmStock
+                ? _value.filmStock
+                : filmStock // ignore: cast_nullable_to_non_nullable
+                      as FilmStock?,
             grain: null == grain
                 ? _value.grain
                 : grain // ignore: cast_nullable_to_non_nullable
@@ -153,9 +153,9 @@ class _$EditStateCopyWithImpl<$Res, $Val extends EditState>
                 ? _value.lensEnabled
                 : lensEnabled // ignore: cast_nullable_to_non_nullable
                       as bool,
-            filmLookEnabled: null == filmLookEnabled
-                ? _value.filmLookEnabled
-                : filmLookEnabled // ignore: cast_nullable_to_non_nullable
+            stockEnabled: null == stockEnabled
+                ? _value.stockEnabled
+                : stockEnabled // ignore: cast_nullable_to_non_nullable
                       as bool,
             grainEnabled: null == grainEnabled
                 ? _value.grainEnabled
@@ -206,13 +206,13 @@ class _$EditStateCopyWithImpl<$Res, $Val extends EditState>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
-  $FilmLookCopyWith<$Res>? get filmLook {
-    if (_value.filmLook == null) {
+  $FilmStockCopyWith<$Res>? get filmStock {
+    if (_value.filmStock == null) {
       return null;
     }
 
-    return $FilmLookCopyWith<$Res>(_value.filmLook!, (value) {
-      return _then(_value.copyWith(filmLook: value) as $Val);
+    return $FilmStockCopyWith<$Res>(_value.filmStock!, (value) {
+      return _then(_value.copyWith(filmStock: value) as $Val);
     });
   }
 
@@ -251,11 +251,11 @@ abstract class _$$EditStateImplCopyWith<$Res>
     String workingFilePath,
     BasicEditorSettings basicEditor,
     LensProfile? lensProfile,
-    FilmLook? filmLook,
+    FilmStock? filmStock,
     GrainSettings grain,
     BloomSettings bloom,
     bool lensEnabled,
-    bool filmLookEnabled,
+    bool stockEnabled,
     bool grainEnabled,
     bool bloomEnabled,
     bool basicEditorEnabled,
@@ -267,7 +267,7 @@ abstract class _$$EditStateImplCopyWith<$Res>
   @override
   $LensProfileCopyWith<$Res>? get lensProfile;
   @override
-  $FilmLookCopyWith<$Res>? get filmLook;
+  $FilmStockCopyWith<$Res>? get filmStock;
   @override
   $GrainSettingsCopyWith<$Res> get grain;
   @override
@@ -292,11 +292,11 @@ class __$$EditStateImplCopyWithImpl<$Res>
     Object? workingFilePath = null,
     Object? basicEditor = null,
     Object? lensProfile = freezed,
-    Object? filmLook = freezed,
+    Object? filmStock = freezed,
     Object? grain = null,
     Object? bloom = null,
     Object? lensEnabled = null,
-    Object? filmLookEnabled = null,
+    Object? stockEnabled = null,
     Object? grainEnabled = null,
     Object? bloomEnabled = null,
     Object? basicEditorEnabled = null,
@@ -320,10 +320,10 @@ class __$$EditStateImplCopyWithImpl<$Res>
             ? _value.lensProfile
             : lensProfile // ignore: cast_nullable_to_non_nullable
                   as LensProfile?,
-        filmLook: freezed == filmLook
-            ? _value.filmLook
-            : filmLook // ignore: cast_nullable_to_non_nullable
-                  as FilmLook?,
+        filmStock: freezed == filmStock
+            ? _value.filmStock
+            : filmStock // ignore: cast_nullable_to_non_nullable
+                  as FilmStock?,
         grain: null == grain
             ? _value.grain
             : grain // ignore: cast_nullable_to_non_nullable
@@ -336,9 +336,9 @@ class __$$EditStateImplCopyWithImpl<$Res>
             ? _value.lensEnabled
             : lensEnabled // ignore: cast_nullable_to_non_nullable
                   as bool,
-        filmLookEnabled: null == filmLookEnabled
-            ? _value.filmLookEnabled
-            : filmLookEnabled // ignore: cast_nullable_to_non_nullable
+        stockEnabled: null == stockEnabled
+            ? _value.stockEnabled
+            : stockEnabled // ignore: cast_nullable_to_non_nullable
                   as bool,
         grainEnabled: null == grainEnabled
             ? _value.grainEnabled
@@ -369,11 +369,11 @@ class _$EditStateImpl extends _EditState {
     required this.workingFilePath,
     this.basicEditor = const BasicEditorSettings(),
     this.lensProfile,
-    this.filmLook,
+    this.filmStock,
     this.grain = const GrainSettings(),
     this.bloom = const BloomSettings(),
     this.lensEnabled = true,
-    this.filmLookEnabled = true,
+    this.stockEnabled = true,
     this.grainEnabled = true,
     this.bloomEnabled = true,
     this.basicEditorEnabled = true,
@@ -400,9 +400,9 @@ class _$EditStateImpl extends _EditState {
   @override
   final LensProfile? lensProfile;
 
-  /// Active film look. Null means the LUT layer is bypassed.
+  /// Active film stock. Null means the stock layer is bypassed.
   @override
-  final FilmLook? filmLook;
+  final FilmStock? filmStock;
 
   /// Grain simulation parameters.
   @override
@@ -419,7 +419,7 @@ class _$EditStateImpl extends _EditState {
   final bool lensEnabled;
   @override
   @JsonKey()
-  final bool filmLookEnabled;
+  final bool stockEnabled;
   @override
   @JsonKey()
   final bool grainEnabled;
@@ -438,7 +438,7 @@ class _$EditStateImpl extends _EditState {
 
   @override
   String toString() {
-    return 'EditState(originalFilePath: $originalFilePath, workingFilePath: $workingFilePath, basicEditor: $basicEditor, lensProfile: $lensProfile, filmLook: $filmLook, grain: $grain, bloom: $bloom, lensEnabled: $lensEnabled, filmLookEnabled: $filmLookEnabled, grainEnabled: $grainEnabled, bloomEnabled: $bloomEnabled, basicEditorEnabled: $basicEditorEnabled, generatedFilePath: $generatedFilePath)';
+    return 'EditState(originalFilePath: $originalFilePath, workingFilePath: $workingFilePath, basicEditor: $basicEditor, lensProfile: $lensProfile, filmStock: $filmStock, grain: $grain, bloom: $bloom, lensEnabled: $lensEnabled, stockEnabled: $stockEnabled, grainEnabled: $grainEnabled, bloomEnabled: $bloomEnabled, basicEditorEnabled: $basicEditorEnabled, generatedFilePath: $generatedFilePath)';
   }
 
   @override
@@ -454,14 +454,14 @@ class _$EditStateImpl extends _EditState {
                 other.basicEditor == basicEditor) &&
             (identical(other.lensProfile, lensProfile) ||
                 other.lensProfile == lensProfile) &&
-            (identical(other.filmLook, filmLook) ||
-                other.filmLook == filmLook) &&
+            (identical(other.filmStock, filmStock) ||
+                other.filmStock == filmStock) &&
             (identical(other.grain, grain) || other.grain == grain) &&
             (identical(other.bloom, bloom) || other.bloom == bloom) &&
             (identical(other.lensEnabled, lensEnabled) ||
                 other.lensEnabled == lensEnabled) &&
-            (identical(other.filmLookEnabled, filmLookEnabled) ||
-                other.filmLookEnabled == filmLookEnabled) &&
+            (identical(other.stockEnabled, stockEnabled) ||
+                other.stockEnabled == stockEnabled) &&
             (identical(other.grainEnabled, grainEnabled) ||
                 other.grainEnabled == grainEnabled) &&
             (identical(other.bloomEnabled, bloomEnabled) ||
@@ -480,11 +480,11 @@ class _$EditStateImpl extends _EditState {
     workingFilePath,
     basicEditor,
     lensProfile,
-    filmLook,
+    filmStock,
     grain,
     bloom,
     lensEnabled,
-    filmLookEnabled,
+    stockEnabled,
     grainEnabled,
     bloomEnabled,
     basicEditorEnabled,
@@ -511,11 +511,11 @@ abstract class _EditState extends EditState {
     required final String workingFilePath,
     final BasicEditorSettings basicEditor,
     final LensProfile? lensProfile,
-    final FilmLook? filmLook,
+    final FilmStock? filmStock,
     final GrainSettings grain,
     final BloomSettings bloom,
     final bool lensEnabled,
-    final bool filmLookEnabled,
+    final bool stockEnabled,
     final bool grainEnabled,
     final bool bloomEnabled,
     final bool basicEditorEnabled,
@@ -542,9 +542,9 @@ abstract class _EditState extends EditState {
   @override
   LensProfile? get lensProfile;
 
-  /// Active film look. Null means the LUT layer is bypassed.
+  /// Active film stock. Null means the stock layer is bypassed.
   @override
-  FilmLook? get filmLook;
+  FilmStock? get filmStock;
 
   /// Grain simulation parameters.
   @override
@@ -556,7 +556,7 @@ abstract class _EditState extends EditState {
   @override
   bool get lensEnabled;
   @override
-  bool get filmLookEnabled;
+  bool get stockEnabled;
   @override
   bool get grainEnabled;
   @override

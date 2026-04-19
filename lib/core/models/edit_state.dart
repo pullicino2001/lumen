@@ -1,7 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'basic_editor_settings.dart';
 import 'bloom_settings.dart';
-import 'film_look.dart';
+import 'film_stock.dart';
 import 'grain_settings.dart';
 import 'lens_profile.dart';
 
@@ -30,8 +30,8 @@ abstract class EditState with _$EditState {
     /// Active lens profile. Null means lens layer is bypassed.
     LensProfile? lensProfile,
 
-    /// Active film look. Null means the LUT layer is bypassed.
-    FilmLook? filmLook,
+    /// Active film stock. Null means the stock layer is bypassed.
+    FilmStock? filmStock,
 
     /// Grain simulation parameters.
     @Default(GrainSettings()) GrainSettings grain,
@@ -42,7 +42,7 @@ abstract class EditState with _$EditState {
     // — Layer toggles —
 
     @Default(true) bool lensEnabled,
-    @Default(true) bool filmLookEnabled,
+    @Default(true) bool stockEnabled,
     @Default(true) bool grainEnabled,
     @Default(true) bool bloomEnabled,
     @Default(true) bool basicEditorEnabled,

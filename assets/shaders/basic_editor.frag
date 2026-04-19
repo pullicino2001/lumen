@@ -16,23 +16,34 @@ uniform float uTint;
 uniform float uSaturation;
 uniform float uVibrance;
 
-// ── Film LUT ────────────────────────────────────────────────────────────────
-uniform float uLutSize;
-uniform float uLutIntensity;
+// ── Film stock (stages 6–8) ────────────────────────────────────────────────
+uniform float uStockEnabled;   // 0 = bypass, 1 = apply
+uniform float uStockIntensity; // 0–1 blend with pre-stock result
+
+uniform vec3  uCMRow0;         // Colour matrix row 0 — how R is built from (R,G,B)
+uniform vec3  uCMRow1;         // Colour matrix row 1 — G
+uniform vec3  uCMRow2;         // Colour matrix row 2 — B
+
+// Per-channel tone curves: [blackLift, toePow, shoulderStart, shoulderPow]
+uniform vec4  uCurveR;
+uniform vec4  uCurveG;
+uniform vec4  uCurveB;
+
+// Hue crossover shifts: [shadowHueDeg, shadowStr, highlightHueDeg, highlightStr]
+uniform vec4  uHueShifts;
 
 // ── Grain ───────────────────────────────────────────────────────────────────
 uniform float uGrainIntensity;
-uniform float uGrainSize;   // 1=fine  2=medium  4=coarse
-uniform float uGrainType;   // 0=luminance  1=colour
+uniform float uGrainSize;
+uniform float uGrainType;
 
 // ── Lens ────────────────────────────────────────────────────────────────────
 uniform float uVignetteIntensity;
-uniform float uVignetteShape;       // 0=circular  1=rectangular
+uniform float uVignetteShape;
 uniform float uChromaticAberration;
-uniform float uDistortion;          // >0 barrel  <0 pincushion
+uniform float uDistortion;
 
 uniform sampler2D uTexture;
-uniform sampler2D uLut;
 
 out vec4 fragColor;
 
@@ -74,33 +85,45 @@ vec3 hsl2rgb(vec3 c) {
   return vec3(hue2rgb(p,q,c.x+1.0/3.0), hue2rgb(p,q,c.x), hue2rgb(p,q,c.x-1.0/3.0));
 }
 
-// Manual trilinear LUT lookup — avoids B-slice boundary artefacts.
-vec3 sampleLut(vec3 c) {
-  float n  = uLutSize;
-  float tw = n * n;
-  vec3 sc  = clamp(c, 0.0, 1.0) * (n - 1.0);
-  float r0 = floor(sc.r), r1 = min(r0+1.0, n-1.0);
-  float g0 = floor(sc.g), g1 = min(g0+1.0, n-1.0);
-  float b0 = floor(sc.b), b1 = min(b0+1.0, n-1.0);
-  float rf = fract(sc.r), gf = fract(sc.g), bf = fract(sc.b);
+// ── Film curve (stage 7) ──────────────────────────────────────────────────
+// Parametric tone curve with shadow lift, toe shaping, and shoulder rolloff.
+float filmCurve(float x, vec4 p) {
+  float blackLift    = p.x;
+  float toePow       = p.y;
+  float shoulderSt   = p.z;
+  float shoulderPow  = p.w;
 
-  vec3 c000=texture(uLut,vec2((b0*n+r0+0.5)/tw,(g0+0.5)/n)).rgb;
-  vec3 c100=texture(uLut,vec2((b0*n+r1+0.5)/tw,(g0+0.5)/n)).rgb;
-  vec3 c010=texture(uLut,vec2((b0*n+r0+0.5)/tw,(g1+0.5)/n)).rgb;
-  vec3 c110=texture(uLut,vec2((b0*n+r1+0.5)/tw,(g1+0.5)/n)).rgb;
-  vec3 c001=texture(uLut,vec2((b1*n+r0+0.5)/tw,(g0+0.5)/n)).rgb;
-  vec3 c101=texture(uLut,vec2((b1*n+r1+0.5)/tw,(g0+0.5)/n)).rgb;
-  vec3 c011=texture(uLut,vec2((b1*n+r0+0.5)/tw,(g1+0.5)/n)).rgb;
-  vec3 c111=texture(uLut,vec2((b1*n+r1+0.5)/tw,(g1+0.5)/n)).rgb;
+  // Lift black point
+  float y = mix(blackLift, 1.0, clamp(x, 0.0, 1.0));
 
-  return mix(
-    mix(mix(c000,c100,rf), mix(c010,c110,rf), gf),
-    mix(mix(c001,c101,rf), mix(c011,c111,rf), gf),
-    bf
-  );
+  // Toe shaping in shadow region
+  float toeBlend = 1.0 - smoothstep(0.0, shoulderSt * 0.55, y);
+  y = mix(y, pow(max(y, 0.001), toePow), toeBlend);
+
+  // Shoulder compression in highlight region
+  float shoulderBlend = smoothstep(shoulderSt, 1.0, y);
+  float shouldered    = 1.0 - pow(max(1.0 - y, 0.001), shoulderPow);
+  y = mix(y, shouldered, shoulderBlend);
+
+  return clamp(y, 0.0, 1.0);
 }
 
-// Barrel (k>0) or pincushion (k<0) distortion.
+// ── Hue crossover shifts (stage 8) ────────────────────────────────────────
+// Rotates hue in shadow and highlight regions independently.
+vec3 applyHueShifts(vec3 c, vec4 hs) {
+  vec3 hsl = rgb2hsl(c);
+  if (hsl.y < 0.015) return c;  // leave achromatic pixels untouched
+
+  float luma       = luminance(c);
+  float shadowW    = (1.0 - smoothstep(0.0, 0.45, luma)) * hs.y;
+  float highlightW = smoothstep(0.55, 1.0, luma) * hs.w;
+  float totalShift = (hs.x * shadowW + hs.z * highlightW) / 360.0;
+
+  hsl.x = fract(hsl.x + totalShift);
+  return hsl2rgb(hsl);
+}
+
+// ── Lens distortion ────────────────────────────────────────────────────────
 vec2 applyDistortion(vec2 uv, float k) {
   vec2 d = uv - 0.5;
   return uv + d * dot(d, d) * k;
@@ -111,7 +134,7 @@ vec2 applyDistortion(vec2 uv, float k) {
 void main() {
   vec2 uv = (FlutterFragCoord().xy - uOffset) / uSize;
 
-  // ── Lens: distortion + chromatic aberration (applied at sample time) ──
+  // ── Lens: distortion + chromatic aberration ───────────────────────────
   vec2  dUV  = applyDistortion(uv, uDistortion);
   vec2  dir  = dUV - 0.5;
   float caOff = uChromaticAberration * 0.015;
@@ -121,7 +144,7 @@ void main() {
   float ca = texture(uTexture, dUV).a;
   vec3  c  = vec3(cr, cg, cb);
 
-  // ── Basic editor ──────────────────────────────────────────────────────
+  // ── Basic editor ─────────────────────────────────────────────────────
   c *= pow(2.0, uExposure);
   c  = (c - 0.5) * (1.0 + uContrast / 100.0) + 0.5;
 
@@ -145,10 +168,31 @@ void main() {
   hsl.y = clamp(hsl.y + (1.0 - hsl.y) * (uVibrance / 100.0) * 0.5, 0.0, 1.0);
   c = hsl2rgb(hsl);
 
-  // ── Film LUT ──────────────────────────────────────────────────────────
-  c = mix(c, sampleLut(c), uLutIntensity);
+  c = clamp(c, 0.0, 1.0);
 
-  // ── Grain (shadow-weighted) ───────────────────────────────────────────
+  // ── Film stock (stages 6–8) ───────────────────────────────────────────
+  if (uStockEnabled > 0.5) {
+    vec3 pre = c;
+
+    // Stage 6: Dye coupler colour matrix
+    c = vec3(dot(c, uCMRow0), dot(c, uCMRow1), dot(c, uCMRow2));
+    c = clamp(c, 0.0, 1.0);
+
+    // Stage 7: Per-channel tone curves
+    c = vec3(
+      filmCurve(c.r, uCurveR),
+      filmCurve(c.g, uCurveG),
+      filmCurve(c.b, uCurveB)
+    );
+
+    // Stage 8: Hue crossover shifts
+    c = applyHueShifts(c, uHueShifts);
+
+    // Blend with pre-stock result
+    c = mix(pre, c, uStockIntensity);
+  }
+
+  // ── Grain (shadow-weighted, stage 10 approximation) ──────────────────
   if (uGrainIntensity > 0.0) {
     float sw = 1.0 - luminance(c) * 0.8;
     vec2  gc = floor(FlutterFragCoord().xy / uGrainSize);
@@ -162,7 +206,7 @@ void main() {
     }
   }
 
-  // ── Vignette (applied last) ───────────────────────────────────────────
+  // ── Vignette ─────────────────────────────────────────────────────────
   if (uVignetteIntensity > 0.0) {
     float circ = length(uv - 0.5) * 2.0;
     float rect = max(abs(uv.x - 0.5), abs(uv.y - 0.5)) * 2.828;

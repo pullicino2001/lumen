@@ -16,6 +16,7 @@ class BloomService {
     required ui.Image source,
     required BloomSettings settings,
     required BloomPrograms programs,
+    List<double>? stockHalationTint,
   }) async {
     final w = source.width;
     final h = source.height;
@@ -35,13 +36,16 @@ class BloomService {
     final bloomH      = await _blur(programs.blur, bloomSrc, (1.0, 0.0), bloomSigma);
     final bloomFinal  = await _blur(programs.blur, bloomH,   (0.0, 1.0), bloomSigma);
 
-    // Halation: wider, softer threshold, warm orange tint
+    // Halation: wider, softer threshold, per-stock or warmth-based tint
     final w01  = settings.halationWarmth; // 0–1
+    final (double hr, double hg, double hb) = stockHalationTint != null
+        ? (stockHalationTint[0], stockHalationTint[1], stockHalationTint[2])
+        : (1.0, 0.35 + w01 * 0.25, w01 < 0.5 ? 0.05 : 0.0);
     final halSrc = await _extract(
       programs.extract, source, bw, bh,
       threshold: (settings.bloomThreshold - 0.15).clamp(0.0, 1.0),
       softness: 0.18,
-      tint: (1.0, 0.35 + w01 * 0.25, w01 < 0.5 ? 0.05 : 0.0),
+      tint: (hr, hg, hb),
     );
     final halH     = await _blur(programs.blur, halSrc, (1.0, 0.0), halationSigma);
     final halFinal = await _blur(programs.blur, halH,   (0.0, 1.0), halationSigma);

@@ -7,7 +7,6 @@ import 'bloom_service.dart';
 /// Renders the full effect stack to a [ui.Image] using the GPU shader.
 ///
 /// Used for both preview (via ShaderPreview widget) and export.
-/// Camera-agnostic — v2 live camera module will call apply() per frame.
 class EffectEngine {
   EffectEngine();
 
@@ -15,8 +14,6 @@ class EffectEngine {
     required EditState state,
     required ui.Image sourceImage,
     required ui.FragmentProgram program,
-    required ui.Image lutImage,
-    required double lutSize,
     BloomPrograms? bloomPrograms,
   }) async {
     final w = sourceImage.width.toDouble();
@@ -26,7 +23,7 @@ class EffectEngine {
     final canvas = ui.Canvas(recorder, ui.Rect.fromLTWH(0, 0, w, h));
 
     final shader = program.fragmentShader();
-    _bindUniforms(shader, state, ui.Size(w, h), lutSize, lutImage, sourceImage);
+    _bindUniforms(shader, state, ui.Size(w, h), sourceImage);
     canvas.drawRect(
       ui.Rect.fromLTWH(0, 0, w, h),
       ui.Paint()..shader = shader,
@@ -40,10 +37,15 @@ class EffectEngine {
         (state.bloom.bloomIntensity > 0 || state.bloom.halationIntensity > 0);
     if (!bloomActive) return processed;
 
+    final halationTint = (state.stockEnabled && state.filmStock != null)
+        ? state.filmStock!.halationTint
+        : null;
+
     return BloomService().apply(
-      source:   processed,
-      settings: state.bloom,
-      programs: bloomPrograms,
+      source:           processed,
+      settings:         state.bloom,
+      programs:         bloomPrograms,
+      stockHalationTint: halationTint,
     );
   }
 
@@ -51,25 +53,20 @@ class EffectEngine {
     ui.FragmentShader shader,
     EditState state,
     ui.Size size,
-    double lutSize,
-    ui.Image lutImage,
     ui.Image sourceImage,
   ) {
     final be = state.basicEditorEnabled
         ? state.basicEditor
         : const BasicEditorSettings();
-    final gr = state.grainEnabled ? state.grain : const GrainSettings();
-    final lens = state.lensEnabled ? state.lensProfile : null;
-    final lutIntensity =
-        (state.filmLookEnabled && state.filmLook != null)
-            ? state.filmLook!.intensity / 100.0
-            : 0.0;
+    final gr   = state.grainEnabled ? state.grain : const GrainSettings();
+    final lens = state.lensEnabled  ? state.lensProfile : null;
+    final stock = state.stockEnabled ? state.filmStock : null;
 
     // Geometry
-    shader.setFloat(0,  size.width);
-    shader.setFloat(1,  size.height);
-    shader.setFloat(2,  0.0); // no letterbox offset for export
-    shader.setFloat(3,  0.0);
+    shader.setFloat(0, size.width);
+    shader.setFloat(1, size.height);
+    shader.setFloat(2, 0.0); // no letterbox offset for export/offscreen
+    shader.setFloat(3, 0.0);
     // Basic editor
     shader.setFloat(4,  be.exposure);
     shader.setFloat(5,  be.contrast);
@@ -81,21 +78,41 @@ class EffectEngine {
     shader.setFloat(11, be.tint);
     shader.setFloat(12, be.saturation);
     shader.setFloat(13, be.vibrance);
-    // LUT
-    shader.setFloat(14, lutSize);
-    shader.setFloat(15, lutIntensity);
+    // Film stock
+    shader.setFloat(14, stock != null ? 1.0 : 0.0);
+    shader.setFloat(15, stock != null ? stock.intensity / 100.0 : 0.0);
+    // Colour matrix (identity when no stock)
+    final cm = stock?.colourMatrix ?? [1,0,0, 0,1,0, 0,0,1];
+    shader.setFloat(16, cm[0]); shader.setFloat(17, cm[1]); shader.setFloat(18, cm[2]);
+    shader.setFloat(19, cm[3]); shader.setFloat(20, cm[4]); shader.setFloat(21, cm[5]);
+    shader.setFloat(22, cm[6]); shader.setFloat(23, cm[7]); shader.setFloat(24, cm[8]);
+    // Tone curves
+    _setCurve(shader, 25, stock?.redCurve   ?? [0.0, 1.0, 0.8, 2.0]);
+    _setCurve(shader, 29, stock?.greenCurve ?? [0.0, 1.0, 0.8, 2.0]);
+    _setCurve(shader, 33, stock?.blueCurve  ?? [0.0, 1.0, 0.8, 2.0]);
+    // Hue shifts
+    shader.setFloat(37, stock?.shadowHueDeg          ?? 0.0);
+    shader.setFloat(38, stock?.shadowHueStrength      ?? 0.0);
+    shader.setFloat(39, stock?.highlightHueDeg        ?? 0.0);
+    shader.setFloat(40, stock?.highlightHueStrength   ?? 0.0);
     // Grain
-    shader.setFloat(16, gr.intensity / 100.0);
-    shader.setFloat(17, _grainSizeVal(gr.size));
-    shader.setFloat(18, gr.type == GrainType.luminance ? 0.0 : 1.0);
+    shader.setFloat(41, gr.intensity / 100.0);
+    shader.setFloat(42, _grainSizeVal(gr.size));
+    shader.setFloat(43, gr.type == GrainType.luminance ? 0.0 : 1.0);
     // Lens
-    shader.setFloat(19, lens?.vignetteIntensity   ?? 0.0);
-    shader.setFloat(20, lens?.vignetteShape        ?? 0.0);
-    shader.setFloat(21, lens?.chromaticAberration  ?? 0.0);
-    shader.setFloat(22, lens?.distortion           ?? 0.0);
-    // Samplers
+    shader.setFloat(44, lens?.vignetteIntensity  ?? 0.0);
+    shader.setFloat(45, lens?.vignetteShape       ?? 0.0);
+    shader.setFloat(46, lens?.chromaticAberration ?? 0.0);
+    shader.setFloat(47, lens?.distortion          ?? 0.0);
+    // Sampler
     shader.setImageSampler(0, sourceImage);
-    shader.setImageSampler(1, lutImage);
+  }
+
+  void _setCurve(ui.FragmentShader shader, int start, List<double> c) {
+    shader.setFloat(start,     c[0]);
+    shader.setFloat(start + 1, c[1]);
+    shader.setFloat(start + 2, c[2]);
+    shader.setFloat(start + 3, c[3]);
   }
 
   double _grainSizeVal(GrainSize size) => switch (size) {

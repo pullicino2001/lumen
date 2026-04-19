@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 import '../models/edit_state.dart';
 import '../models/basic_editor_settings.dart';
 import '../models/grain_settings.dart';
+import 'bloom_service.dart';
 
 /// Renders the full effect stack to a [ui.Image] using the GPU shader.
 ///
@@ -16,6 +17,7 @@ class EffectEngine {
     required ui.FragmentProgram program,
     required ui.Image lutImage,
     required double lutSize,
+    BloomPrograms? bloomPrograms,
   }) async {
     final w = sourceImage.width.toDouble();
     final h = sourceImage.height.toDouble();
@@ -30,8 +32,19 @@ class EffectEngine {
       ui.Paint()..shader = shader,
     );
 
-    final picture = recorder.endRecording();
-    return picture.toImage(sourceImage.width, sourceImage.height);
+    final processed =
+        await recorder.endRecording().toImage(sourceImage.width, sourceImage.height);
+
+    final bloomActive = bloomPrograms != null &&
+        state.bloomEnabled &&
+        (state.bloom.bloomIntensity > 0 || state.bloom.halationIntensity > 0);
+    if (!bloomActive) return processed;
+
+    return BloomService().apply(
+      source:   processed,
+      settings: state.bloom,
+      programs: bloomPrograms,
+    );
   }
 
   void _bindUniforms(

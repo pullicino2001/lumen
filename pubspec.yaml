@@ -60,3 +60,6 @@ flutter:
 
   shaders:
     - assets/shaders/basic_editor.frag
+    - assets/shaders/bloom_extract.frag
+    - assets/shaders/bloom_blur.frag
+    - assets/shaders/bloom_composite.frag

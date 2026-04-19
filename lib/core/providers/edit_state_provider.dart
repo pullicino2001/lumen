@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/edit_state.dart';
 import '../models/basic_editor_settings.dart';
 import '../models/film_look.dart';
+import '../models/bloom_settings.dart';
 import '../models/grain_settings.dart';
 import '../models/lens_profile.dart';
 
@@ -46,6 +47,11 @@ class EditStateNotifier extends Notifier<EditState?> {
   /// Updates grain settings.
   void updateGrain(GrainSettings settings) {
     state = state?.copyWith(grain: settings);
+  }
+
+  /// Updates bloom/halation settings.
+  void updateBloom(BloomSettings settings) {
+    state = state?.copyWith(bloom: settings);
   }
 
   /// Toggles the film look layer on/off.

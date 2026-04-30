@@ -24,8 +24,11 @@ mixin _$EditState {
   /// Path to the original imported file. Never modified.
   String get originalFilePath => throw _privateConstructorUsedError;
 
-  /// Path to the decoded working copy in app temp storage.
+  /// Path to the decoded working copy in app temp storage. Used for export only.
   String get workingFilePath => throw _privateConstructorUsedError;
+
+  /// Path to the downscaled JPEG proxy. Used for all live preview rendering.
+  String get proxyFilePath => throw _privateConstructorUsedError;
 
   /// Basic editor adjustments — applied as a separate shader pass.
   BasicEditorSettings get basicEditor => throw _privateConstructorUsedError;
@@ -47,6 +50,12 @@ mixin _$EditState {
   bool get grainEnabled => throw _privateConstructorUsedError;
   bool get bloomEnabled => throw _privateConstructorUsedError;
   bool get basicEditorEnabled =>
+      throw _privateConstructorUsedError; // — LUMEN Look —
+  /// Whether the LUMEN colour-science rendering is active.
+  ImportProfile get importProfile => throw _privateConstructorUsedError;
+
+  /// Path to the LUMEN-processed proxy JPEG. Null until generation completes.
+  String? get lumenProxyPath =>
       throw _privateConstructorUsedError; // — Generation (v4) —
   /// Path to a generated image returned from the AI service.
   /// Non-null only after a successful Pro Max generation.
@@ -70,6 +79,7 @@ abstract class $EditStateCopyWith<$Res> {
   $Res call({
     String originalFilePath,
     String workingFilePath,
+    String proxyFilePath,
     BasicEditorSettings basicEditor,
     LensProfile? lensProfile,
     FilmStock? filmStock,
@@ -80,6 +90,8 @@ abstract class $EditStateCopyWith<$Res> {
     bool grainEnabled,
     bool bloomEnabled,
     bool basicEditorEnabled,
+    ImportProfile importProfile,
+    String? lumenProxyPath,
     String? generatedFilePath,
   });
 
@@ -107,6 +119,7 @@ class _$EditStateCopyWithImpl<$Res, $Val extends EditState>
   $Res call({
     Object? originalFilePath = null,
     Object? workingFilePath = null,
+    Object? proxyFilePath = null,
     Object? basicEditor = null,
     Object? lensProfile = freezed,
     Object? filmStock = freezed,
@@ -117,6 +130,8 @@ class _$EditStateCopyWithImpl<$Res, $Val extends EditState>
     Object? grainEnabled = null,
     Object? bloomEnabled = null,
     Object? basicEditorEnabled = null,
+    Object? importProfile = null,
+    Object? lumenProxyPath = freezed,
     Object? generatedFilePath = freezed,
   }) {
     return _then(
@@ -128,6 +143,10 @@ class _$EditStateCopyWithImpl<$Res, $Val extends EditState>
             workingFilePath: null == workingFilePath
                 ? _value.workingFilePath
                 : workingFilePath // ignore: cast_nullable_to_non_nullable
+                      as String,
+            proxyFilePath: null == proxyFilePath
+                ? _value.proxyFilePath
+                : proxyFilePath // ignore: cast_nullable_to_non_nullable
                       as String,
             basicEditor: null == basicEditor
                 ? _value.basicEditor
@@ -169,6 +188,14 @@ class _$EditStateCopyWithImpl<$Res, $Val extends EditState>
                 ? _value.basicEditorEnabled
                 : basicEditorEnabled // ignore: cast_nullable_to_non_nullable
                       as bool,
+            importProfile: null == importProfile
+                ? _value.importProfile
+                : importProfile // ignore: cast_nullable_to_non_nullable
+                      as ImportProfile,
+            lumenProxyPath: freezed == lumenProxyPath
+                ? _value.lumenProxyPath
+                : lumenProxyPath // ignore: cast_nullable_to_non_nullable
+                      as String?,
             generatedFilePath: freezed == generatedFilePath
                 ? _value.generatedFilePath
                 : generatedFilePath // ignore: cast_nullable_to_non_nullable
@@ -249,6 +276,7 @@ abstract class _$$EditStateImplCopyWith<$Res>
   $Res call({
     String originalFilePath,
     String workingFilePath,
+    String proxyFilePath,
     BasicEditorSettings basicEditor,
     LensProfile? lensProfile,
     FilmStock? filmStock,
@@ -259,6 +287,8 @@ abstract class _$$EditStateImplCopyWith<$Res>
     bool grainEnabled,
     bool bloomEnabled,
     bool basicEditorEnabled,
+    ImportProfile importProfile,
+    String? lumenProxyPath,
     String? generatedFilePath,
   });
 
@@ -290,6 +320,7 @@ class __$$EditStateImplCopyWithImpl<$Res>
   $Res call({
     Object? originalFilePath = null,
     Object? workingFilePath = null,
+    Object? proxyFilePath = null,
     Object? basicEditor = null,
     Object? lensProfile = freezed,
     Object? filmStock = freezed,
@@ -300,6 +331,8 @@ class __$$EditStateImplCopyWithImpl<$Res>
     Object? grainEnabled = null,
     Object? bloomEnabled = null,
     Object? basicEditorEnabled = null,
+    Object? importProfile = null,
+    Object? lumenProxyPath = freezed,
     Object? generatedFilePath = freezed,
   }) {
     return _then(
@@ -311,6 +344,10 @@ class __$$EditStateImplCopyWithImpl<$Res>
         workingFilePath: null == workingFilePath
             ? _value.workingFilePath
             : workingFilePath // ignore: cast_nullable_to_non_nullable
+                  as String,
+        proxyFilePath: null == proxyFilePath
+            ? _value.proxyFilePath
+            : proxyFilePath // ignore: cast_nullable_to_non_nullable
                   as String,
         basicEditor: null == basicEditor
             ? _value.basicEditor
@@ -352,6 +389,14 @@ class __$$EditStateImplCopyWithImpl<$Res>
             ? _value.basicEditorEnabled
             : basicEditorEnabled // ignore: cast_nullable_to_non_nullable
                   as bool,
+        importProfile: null == importProfile
+            ? _value.importProfile
+            : importProfile // ignore: cast_nullable_to_non_nullable
+                  as ImportProfile,
+        lumenProxyPath: freezed == lumenProxyPath
+            ? _value.lumenProxyPath
+            : lumenProxyPath // ignore: cast_nullable_to_non_nullable
+                  as String?,
         generatedFilePath: freezed == generatedFilePath
             ? _value.generatedFilePath
             : generatedFilePath // ignore: cast_nullable_to_non_nullable
@@ -367,6 +412,7 @@ class _$EditStateImpl extends _EditState {
   const _$EditStateImpl({
     required this.originalFilePath,
     required this.workingFilePath,
+    required this.proxyFilePath,
     this.basicEditor = const BasicEditorSettings(),
     this.lensProfile,
     this.filmStock,
@@ -377,6 +423,8 @@ class _$EditStateImpl extends _EditState {
     this.grainEnabled = true,
     this.bloomEnabled = true,
     this.basicEditorEnabled = true,
+    this.importProfile = ImportProfile.lumen,
+    this.lumenProxyPath = null,
     this.generatedFilePath = null,
   }) : super._();
 
@@ -387,9 +435,13 @@ class _$EditStateImpl extends _EditState {
   @override
   final String originalFilePath;
 
-  /// Path to the decoded working copy in app temp storage.
+  /// Path to the decoded working copy in app temp storage. Used for export only.
   @override
   final String workingFilePath;
+
+  /// Path to the downscaled JPEG proxy. Used for all live preview rendering.
+  @override
+  final String proxyFilePath;
 
   /// Basic editor adjustments — applied as a separate shader pass.
   @override
@@ -429,6 +481,16 @@ class _$EditStateImpl extends _EditState {
   @override
   @JsonKey()
   final bool basicEditorEnabled;
+  // — LUMEN Look —
+  /// Whether the LUMEN colour-science rendering is active.
+  @override
+  @JsonKey()
+  final ImportProfile importProfile;
+
+  /// Path to the LUMEN-processed proxy JPEG. Null until generation completes.
+  @override
+  @JsonKey()
+  final String? lumenProxyPath;
   // — Generation (v4) —
   /// Path to a generated image returned from the AI service.
   /// Non-null only after a successful Pro Max generation.
@@ -438,7 +500,7 @@ class _$EditStateImpl extends _EditState {
 
   @override
   String toString() {
-    return 'EditState(originalFilePath: $originalFilePath, workingFilePath: $workingFilePath, basicEditor: $basicEditor, lensProfile: $lensProfile, filmStock: $filmStock, grain: $grain, bloom: $bloom, lensEnabled: $lensEnabled, stockEnabled: $stockEnabled, grainEnabled: $grainEnabled, bloomEnabled: $bloomEnabled, basicEditorEnabled: $basicEditorEnabled, generatedFilePath: $generatedFilePath)';
+    return 'EditState(originalFilePath: $originalFilePath, workingFilePath: $workingFilePath, proxyFilePath: $proxyFilePath, basicEditor: $basicEditor, lensProfile: $lensProfile, filmStock: $filmStock, grain: $grain, bloom: $bloom, lensEnabled: $lensEnabled, stockEnabled: $stockEnabled, grainEnabled: $grainEnabled, bloomEnabled: $bloomEnabled, basicEditorEnabled: $basicEditorEnabled, importProfile: $importProfile, lumenProxyPath: $lumenProxyPath, generatedFilePath: $generatedFilePath)';
   }
 
   @override
@@ -450,6 +512,8 @@ class _$EditStateImpl extends _EditState {
                 other.originalFilePath == originalFilePath) &&
             (identical(other.workingFilePath, workingFilePath) ||
                 other.workingFilePath == workingFilePath) &&
+            (identical(other.proxyFilePath, proxyFilePath) ||
+                other.proxyFilePath == proxyFilePath) &&
             (identical(other.basicEditor, basicEditor) ||
                 other.basicEditor == basicEditor) &&
             (identical(other.lensProfile, lensProfile) ||
@@ -468,6 +532,10 @@ class _$EditStateImpl extends _EditState {
                 other.bloomEnabled == bloomEnabled) &&
             (identical(other.basicEditorEnabled, basicEditorEnabled) ||
                 other.basicEditorEnabled == basicEditorEnabled) &&
+            (identical(other.importProfile, importProfile) ||
+                other.importProfile == importProfile) &&
+            (identical(other.lumenProxyPath, lumenProxyPath) ||
+                other.lumenProxyPath == lumenProxyPath) &&
             (identical(other.generatedFilePath, generatedFilePath) ||
                 other.generatedFilePath == generatedFilePath));
   }
@@ -478,6 +546,7 @@ class _$EditStateImpl extends _EditState {
     runtimeType,
     originalFilePath,
     workingFilePath,
+    proxyFilePath,
     basicEditor,
     lensProfile,
     filmStock,
@@ -488,6 +557,8 @@ class _$EditStateImpl extends _EditState {
     grainEnabled,
     bloomEnabled,
     basicEditorEnabled,
+    importProfile,
+    lumenProxyPath,
     generatedFilePath,
   );
 
@@ -509,6 +580,7 @@ abstract class _EditState extends EditState {
   const factory _EditState({
     required final String originalFilePath,
     required final String workingFilePath,
+    required final String proxyFilePath,
     final BasicEditorSettings basicEditor,
     final LensProfile? lensProfile,
     final FilmStock? filmStock,
@@ -519,6 +591,8 @@ abstract class _EditState extends EditState {
     final bool grainEnabled,
     final bool bloomEnabled,
     final bool basicEditorEnabled,
+    final ImportProfile importProfile,
+    final String? lumenProxyPath,
     final String? generatedFilePath,
   }) = _$EditStateImpl;
   const _EditState._() : super._();
@@ -530,9 +604,13 @@ abstract class _EditState extends EditState {
   @override
   String get originalFilePath;
 
-  /// Path to the decoded working copy in app temp storage.
+  /// Path to the decoded working copy in app temp storage. Used for export only.
   @override
   String get workingFilePath;
+
+  /// Path to the downscaled JPEG proxy. Used for all live preview rendering.
+  @override
+  String get proxyFilePath;
 
   /// Basic editor adjustments — applied as a separate shader pass.
   @override
@@ -562,7 +640,14 @@ abstract class _EditState extends EditState {
   @override
   bool get bloomEnabled;
   @override
-  bool get basicEditorEnabled; // — Generation (v4) —
+  bool get basicEditorEnabled; // — LUMEN Look —
+  /// Whether the LUMEN colour-science rendering is active.
+  @override
+  ImportProfile get importProfile;
+
+  /// Path to the LUMEN-processed proxy JPEG. Null until generation completes.
+  @override
+  String? get lumenProxyPath; // — Generation (v4) —
   /// Path to a generated image returned from the AI service.
   /// Non-null only after a successful Pro Max generation.
   @override

@@ -34,6 +34,9 @@ dependencies:
   # Logging — used for graceful-disable warnings in AI config service
   logger: ^2.5.0
 
+  # Google Fonts — Cormorant Garamond, Inter Tight, JetBrains Mono
+  google_fonts: ^6.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -54,6 +57,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/baseline/
     - assets/lens_profiles/
     - assets/config/
 

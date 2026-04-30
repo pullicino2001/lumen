@@ -3,6 +3,7 @@ import 'basic_editor_settings.dart';
 import 'bloom_settings.dart';
 import 'film_stock.dart';
 import 'grain_settings.dart';
+import 'import_profile.dart';
 import 'lens_profile.dart';
 
 part 'edit_state.freezed.dart';
@@ -21,8 +22,11 @@ abstract class EditState with _$EditState {
     /// Path to the original imported file. Never modified.
     required String originalFilePath,
 
-    /// Path to the decoded working copy in app temp storage.
+    /// Path to the decoded working copy in app temp storage. Used for export only.
     required String workingFilePath,
+
+    /// Path to the downscaled JPEG proxy. Used for all live preview rendering.
+    required String proxyFilePath,
 
     /// Basic editor adjustments — applied as a separate shader pass.
     @Default(BasicEditorSettings()) BasicEditorSettings basicEditor,
@@ -46,6 +50,14 @@ abstract class EditState with _$EditState {
     @Default(true) bool grainEnabled,
     @Default(true) bool bloomEnabled,
     @Default(true) bool basicEditorEnabled,
+
+    // — LUMEN Look —
+
+    /// Whether the LUMEN colour-science rendering is active.
+    @Default(ImportProfile.lumen) ImportProfile importProfile,
+
+    /// Path to the LUMEN-processed proxy JPEG. Null until generation completes.
+    @Default(null) String? lumenProxyPath,
 
     // — Generation (v4) —
 

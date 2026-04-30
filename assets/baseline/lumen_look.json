@@ -1,0 +1,51 @@
+{
+  "name": "LUMEN Look",
+  "version": "1.0",
+  "description": "Default camera rendering profile. Applied automatically to every image. Modelled on Leica camera colour science. Values derived from measured LibRaw/dcraw colour matrices across 15 Leica cameras (M8, M9, M10, M240, Q, Q2, CL, SL, S2, S3, T, TL, TL2, X1, X2).",
+
+  "grading_matrix": {
+    "description": "3x3 colour grading matrix applied in linear light after camera matrix (stage 5). Adds ~2% warm bias modelling average Leica R/B channel ratio of 1.55.",
+    "rows": [
+      [1.020,  0.008, -0.010],
+      [0.005,  0.992,  0.003],
+      [-0.008, 0.002,  0.978]
+    ]
+  },
+
+  "tone_curve": {
+    "description": "Gentle S-curve replacing phone-style tone mapping with camera-style rendering. True blacks, slight midtone lift, organic highlight rolloff. Applied at display encoding (stage 11).",
+    "control_points": [
+      {"input": 0.00, "output": 0.000},
+      {"input": 0.02, "output": 0.010},
+      {"input": 0.05, "output": 0.038},
+      {"input": 0.10, "output": 0.088},
+      {"input": 0.18, "output": 0.200},
+      {"input": 0.30, "output": 0.345},
+      {"input": 0.50, "output": 0.550},
+      {"input": 0.70, "output": 0.735},
+      {"input": 0.85, "output": 0.875},
+      {"input": 0.95, "output": 0.960},
+      {"input": 1.00, "output": 1.000}
+    ]
+  },
+
+  "saturation": {
+    "description": "Global saturation multiplier. Below 1.0 pulls back phone oversaturation toward natural camera levels.",
+    "multiplier": 0.97
+  },
+
+  "vignette": {
+    "description": "Models natural lens light falloff. Draws eye to centre, adds depth. Matches Leica Authentic mode approach.",
+    "enabled": true,
+    "strength": 0.08,
+    "radius": 0.70,
+    "feather": 0.50
+  },
+
+  "sharpening": {
+    "description": "Gentle unsharp mask. Resolves detail without visible edge halos. Opposite of aggressive phone sharpening.",
+    "radius": 1.8,
+    "amount": 0.35,
+    "threshold": 0.02
+  }
+}

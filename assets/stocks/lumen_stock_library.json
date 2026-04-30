@@ -1,0 +1,949 @@
+{
+  "_metadata": {
+    "format_version": "1.0",
+    "description": "LUMEN Film Stock Library — Parametric definitions for pipeline stages 5.5 through 10",
+    "notes": [
+      "Stage 5.5 (baseline_grading) sits between Camera Matrix (stage 5) and Film Model (stage 6)",
+      "It applies a subtle camera-like rendering to all images before any stock is selected",
+      "Stages 6-10 are the per-stock creative model",
+      "All colour matrices are applied in scene-linear light",
+      "Tone curve values define control points: input (scene linear 0-1) → output (density mapped 0-1)",
+      "Hue shifts are in degrees, applied in HSL space",
+      "Grain is composited in linear light, intensity scales with capture ISO when iso_responsive is true"
+    ],
+    "source_data": "Leica camera colour matrices from LibRaw/dcraw, Leica Look descriptions from leica-camera.com, M9 CCD analysis from multiple sources",
+    "created": "2026-04-23",
+    "author": "LUMEN research session"
+  },
+
+  "baseline": {
+    "stock_name": "LUMEN Camera Standard",
+    "stock_id": "lumen_baseline",
+    "description": "Default camera rendering — makes phone output feel like a dedicated camera. Applied to all images before any stock. Inspired by average Leica colour science warmth (R/B ratio ~1.55 across all Leica cameras).",
+    "category": "baseline",
+    "stage_5_5_grading_matrix": [
+      [1.020,  0.008, -0.010],
+      [0.005,  0.992,  0.003],
+      [-0.008, 0.002,  0.978]
+    ],
+    "baseline_tone_curve": {
+      "description": "Gentle S-curve: true blacks, slight midtone lift, organic highlight rolloff",
+      "control_points": [
+        [0.00, 0.000],
+        [0.02, 0.010],
+        [0.05, 0.038],
+        [0.10, 0.088],
+        [0.18, 0.200],
+        [0.30, 0.345],
+        [0.50, 0.550],
+        [0.70, 0.735],
+        [0.85, 0.875],
+        [0.95, 0.960],
+        [1.00, 1.000]
+      ]
+    },
+    "baseline_saturation": 0.97,
+    "baseline_vignette": {
+      "enabled": true,
+      "strength": 0.08,
+      "radius": 0.70,
+      "feather": 0.50
+    },
+    "baseline_sharpening": {
+      "radius": 1.8,
+      "amount": 0.35,
+      "threshold": 0.02
+    }
+  },
+
+  "stocks": [
+
+    {
+      "stock_name": "LUMEN Classic",
+      "stock_id": "lumen_classic",
+      "description": "Analog cinema look. High contrast with muted, warm, washed-out colours. Inspired by Leica Classic — the most filmic of all Leica Looks.",
+      "category": "colour",
+      "inspired_by": "Leica Classic",
+
+      "dye_coupler_matrix": [
+        [1.030, 0.015, -0.020],
+        [0.010, 0.965,  0.005],
+        [-0.015, 0.005, 0.950]
+      ],
+
+      "tone_curve": {
+        "red": {
+          "control_points": [
+            [0.00, 0.020],
+            [0.05, 0.040],
+            [0.15, 0.130],
+            [0.30, 0.340],
+            [0.50, 0.580],
+            [0.70, 0.750],
+            [0.85, 0.860],
+            [0.95, 0.920],
+            [1.00, 0.960]
+          ]
+        },
+        "green": {
+          "control_points": [
+            [0.00, 0.018],
+            [0.05, 0.038],
+            [0.15, 0.125],
+            [0.30, 0.330],
+            [0.50, 0.570],
+            [0.70, 0.740],
+            [0.85, 0.855],
+            [0.95, 0.915],
+            [1.00, 0.955]
+          ]
+        },
+        "blue": {
+          "control_points": [
+            [0.00, 0.025],
+            [0.05, 0.048],
+            [0.15, 0.140],
+            [0.30, 0.345],
+            [0.50, 0.565],
+            [0.70, 0.725],
+            [0.85, 0.840],
+            [0.95, 0.905],
+            [1.00, 0.945]
+          ]
+        }
+      },
+
+      "saturation_multiplier": 0.75,
+
+      "shadow_hue_shift": {
+        "angle_degrees": -7.0,
+        "strength": 0.15,
+        "range_end": 0.25
+      },
+      "highlight_hue_shift": {
+        "angle_degrees": 12.0,
+        "strength": 0.12,
+        "range_start": 0.75
+      },
+
+      "halation": {
+        "enabled": false,
+        "colour": [1.0, 0.6, 0.2],
+        "radius": 0.0,
+        "intensity": 0.0
+      },
+
+      "grain": {
+        "enabled": true,
+        "size": 1.4,
+        "intensity": 0.08,
+        "luminance_weight": 0.80,
+        "colour_weight": 0.20,
+        "clumping": 0.35,
+        "iso_responsive": true,
+        "iso_base": 100
+      },
+
+      "exposure_bias": 0.0,
+      "white_balance_shift_kelvin": 200,
+      "vignette_strength": 0.12
+    },
+
+    {
+      "stock_name": "LUMEN Contemporary",
+      "stock_id": "lumen_contemporary",
+      "description": "Modern portrait look. Bright open shadows, natural colours with subtle warm/red tint. Flattering skin tones. Inspired by Leica Contemporary.",
+      "category": "colour",
+      "inspired_by": "Leica Contemporary",
+
+      "dye_coupler_matrix": [
+        [1.025,  0.010, -0.005],
+        [0.008,  0.990,  0.002],
+        [-0.005, 0.003,  0.985]
+      ],
+
+      "tone_curve": {
+        "red": {
+          "control_points": [
+            [0.00, 0.065],
+            [0.05, 0.090],
+            [0.15, 0.170],
+            [0.30, 0.330],
+            [0.50, 0.545],
+            [0.70, 0.720],
+            [0.85, 0.855],
+            [0.95, 0.950],
+            [1.00, 0.990]
+          ]
+        },
+        "green": {
+          "control_points": [
+            [0.00, 0.060],
+            [0.05, 0.085],
+            [0.15, 0.165],
+            [0.30, 0.325],
+            [0.50, 0.540],
+            [0.70, 0.715],
+            [0.85, 0.850],
+            [0.95, 0.948],
+            [1.00, 0.988]
+          ]
+        },
+        "blue": {
+          "control_points": [
+            [0.00, 0.055],
+            [0.05, 0.080],
+            [0.15, 0.158],
+            [0.30, 0.315],
+            [0.50, 0.530],
+            [0.70, 0.708],
+            [0.85, 0.845],
+            [0.95, 0.945],
+            [1.00, 0.985]
+          ]
+        }
+      },
+
+      "saturation_multiplier": 0.95,
+
+      "shadow_hue_shift": {
+        "angle_degrees": 5.0,
+        "strength": 0.08,
+        "range_end": 0.20
+      },
+      "highlight_hue_shift": {
+        "angle_degrees": 3.0,
+        "strength": 0.05,
+        "range_start": 0.80
+      },
+
+      "halation": {
+        "enabled": false,
+        "colour": [1.0, 0.8, 0.5],
+        "radius": 0.0,
+        "intensity": 0.0
+      },
+
+      "grain": {
+        "enabled": false,
+        "size": 1.0,
+        "intensity": 0.0,
+        "luminance_weight": 0.80,
+        "colour_weight": 0.20,
+        "clumping": 0.30,
+        "iso_responsive": true,
+        "iso_base": 100
+      },
+
+      "exposure_bias": 0.15,
+      "white_balance_shift_kelvin": 100,
+      "vignette_strength": 0.06
+    },
+
+    {
+      "stock_name": "LUMEN CCD",
+      "stock_id": "lumen_ccd",
+      "description": "Leica M9 CCD sensor emulation. The most sought-after digital camera rendering. Neutral matrix, rich but natural saturation, warm highlight / cool shadow split-tone, organic rolloff, fine grain. Based on Kodak KAF-18500 CCD characteristics and Leica M9 cam_xyz matrix (R/B 1.09).",
+      "category": "colour",
+      "inspired_by": "Leica M9 CCD / Leitzphone Essential Mode",
+
+      "dye_coupler_matrix": [
+        [1.005,  0.005, -0.003],
+        [0.003,  1.000,  0.002],
+        [-0.002, 0.003,  1.005]
+      ],
+
+      "tone_curve": {
+        "red": {
+          "control_points": [
+            [0.00, 0.040],
+            [0.05, 0.065],
+            [0.15, 0.150],
+            [0.30, 0.315],
+            [0.50, 0.535],
+            [0.70, 0.720],
+            [0.82, 0.830],
+            [0.90, 0.905],
+            [0.95, 0.950],
+            [1.00, 0.985]
+          ]
+        },
+        "green": {
+          "control_points": [
+            [0.00, 0.035],
+            [0.05, 0.060],
+            [0.15, 0.148],
+            [0.30, 0.310],
+            [0.50, 0.530],
+            [0.70, 0.715],
+            [0.82, 0.825],
+            [0.90, 0.900],
+            [0.95, 0.945],
+            [1.00, 0.982]
+          ]
+        },
+        "blue": {
+          "control_points": [
+            [0.00, 0.045],
+            [0.05, 0.072],
+            [0.15, 0.158],
+            [0.30, 0.320],
+            [0.50, 0.535],
+            [0.70, 0.712],
+            [0.82, 0.818],
+            [0.90, 0.892],
+            [0.95, 0.938],
+            [1.00, 0.978]
+          ]
+        }
+      },
+
+      "saturation_multiplier": 1.08,
+
+      "shadow_hue_shift": {
+        "angle_degrees": -6.0,
+        "strength": 0.12,
+        "range_end": 0.22
+      },
+      "highlight_hue_shift": {
+        "angle_degrees": 8.0,
+        "strength": 0.10,
+        "range_start": 0.78
+      },
+
+      "halation": {
+        "enabled": false,
+        "colour": [1.0, 0.85, 0.55],
+        "radius": 0.0,
+        "intensity": 0.0
+      },
+
+      "grain": {
+        "enabled": true,
+        "size": 0.8,
+        "intensity": 0.05,
+        "luminance_weight": 0.85,
+        "colour_weight": 0.15,
+        "clumping": 0.20,
+        "iso_responsive": true,
+        "iso_base": 160
+      },
+
+      "exposure_bias": 0.0,
+      "white_balance_shift_kelvin": 50,
+      "vignette_strength": 0.10
+    },
+
+    {
+      "stock_name": "LUMEN Chrome",
+      "stock_id": "lumen_chrome",
+      "description": "Muted slide film aesthetic. Desaturated with subtle contrasts, neutral-cool temperature. Kodachrome/Ektachrome territory. Inspired by Leica Chrome (noted similarity to Fujifilm Classic Chrome).",
+      "category": "colour",
+      "inspired_by": "Leica Chrome",
+
+      "dye_coupler_matrix": [
+        [0.985,  0.010, -0.005],
+        [0.005,  0.975,  0.008],
+        [-0.008, 0.008,  0.990]
+      ],
+
+      "tone_curve": {
+        "red": {
+          "control_points": [
+            [0.00, 0.022],
+            [0.05, 0.048],
+            [0.15, 0.145],
+            [0.30, 0.320],
+            [0.50, 0.540],
+            [0.70, 0.725],
+            [0.85, 0.860],
+            [0.95, 0.940],
+            [1.00, 0.980]
+          ]
+        },
+        "green": {
+          "control_points": [
+            [0.00, 0.020],
+            [0.05, 0.045],
+            [0.15, 0.140],
+            [0.30, 0.315],
+            [0.50, 0.535],
+            [0.70, 0.720],
+            [0.85, 0.858],
+            [0.95, 0.938],
+            [1.00, 0.978]
+          ]
+        },
+        "blue": {
+          "control_points": [
+            [0.00, 0.025],
+            [0.05, 0.052],
+            [0.15, 0.150],
+            [0.30, 0.328],
+            [0.50, 0.545],
+            [0.70, 0.722],
+            [0.85, 0.855],
+            [0.95, 0.935],
+            [1.00, 0.975]
+          ]
+        }
+      },
+
+      "saturation_multiplier": 0.80,
+
+      "shadow_hue_shift": {
+        "angle_degrees": 0.0,
+        "strength": 0.0,
+        "range_end": 0.25
+      },
+      "highlight_hue_shift": {
+        "angle_degrees": -2.0,
+        "strength": 0.04,
+        "range_start": 0.80
+      },
+
+      "halation": {
+        "enabled": false,
+        "colour": [1.0, 0.7, 0.3],
+        "radius": 0.0,
+        "intensity": 0.0
+      },
+
+      "grain": {
+        "enabled": true,
+        "size": 1.0,
+        "intensity": 0.06,
+        "luminance_weight": 0.82,
+        "colour_weight": 0.18,
+        "clumping": 0.28,
+        "iso_responsive": true,
+        "iso_base": 100
+      },
+
+      "exposure_bias": 0.0,
+      "white_balance_shift_kelvin": -150,
+      "vignette_strength": 0.08
+    },
+
+    {
+      "stock_name": "LUMEN Eternal",
+      "stock_id": "lumen_eternal",
+      "description": "Bold, high-impact modern look. Very high contrast, strong saturation with distinctive magenta tint. Purple shadows, pink highlights. Inspired by Leica Eternal.",
+      "category": "colour",
+      "inspired_by": "Leica Eternal",
+
+      "dye_coupler_matrix": [
+        [1.060, -0.015, 0.020],
+        [-0.010, 0.950, 0.010],
+        [0.015, -0.010, 1.040]
+      ],
+
+      "tone_curve": {
+        "red": {
+          "control_points": [
+            [0.00, 0.008],
+            [0.05, 0.030],
+            [0.15, 0.120],
+            [0.30, 0.330],
+            [0.50, 0.585],
+            [0.70, 0.760],
+            [0.85, 0.880],
+            [0.95, 0.945],
+            [1.00, 0.985]
+          ]
+        },
+        "green": {
+          "control_points": [
+            [0.00, 0.005],
+            [0.05, 0.025],
+            [0.15, 0.108],
+            [0.30, 0.310],
+            [0.50, 0.560],
+            [0.70, 0.740],
+            [0.85, 0.865],
+            [0.95, 0.935],
+            [1.00, 0.978]
+          ]
+        },
+        "blue": {
+          "control_points": [
+            [0.00, 0.012],
+            [0.05, 0.038],
+            [0.15, 0.130],
+            [0.30, 0.340],
+            [0.50, 0.580],
+            [0.70, 0.748],
+            [0.85, 0.870],
+            [0.95, 0.938],
+            [1.00, 0.980]
+          ]
+        }
+      },
+
+      "saturation_multiplier": 1.30,
+
+      "shadow_hue_shift": {
+        "angle_degrees": -12.0,
+        "strength": 0.18,
+        "range_end": 0.25
+      },
+      "highlight_hue_shift": {
+        "angle_degrees": 14.0,
+        "strength": 0.15,
+        "range_start": 0.72
+      },
+
+      "halation": {
+        "enabled": false,
+        "colour": [1.0, 0.5, 0.8],
+        "radius": 0.0,
+        "intensity": 0.0
+      },
+
+      "grain": {
+        "enabled": false,
+        "size": 1.0,
+        "intensity": 0.0,
+        "luminance_weight": 0.80,
+        "colour_weight": 0.20,
+        "clumping": 0.30,
+        "iso_responsive": true,
+        "iso_base": 100
+      },
+
+      "exposure_bias": 0.0,
+      "white_balance_shift_kelvin": -50,
+      "vignette_strength": 0.10
+    },
+
+    {
+      "stock_name": "LUMEN Brass",
+      "stock_id": "lumen_brass",
+      "description": "Golden hour warmth. Strong amber/gold colour bias with emphasis on midtones and highlights. Optimistic, energetic feel. Inspired by Leica Brass.",
+      "category": "colour",
+      "inspired_by": "Leica Brass",
+
+      "dye_coupler_matrix": [
+        [1.055,  0.020, -0.025],
+        [0.015,  1.005, -0.010],
+        [-0.025, 0.005,  0.920]
+      ],
+
+      "tone_curve": {
+        "red": {
+          "control_points": [
+            [0.00, 0.015],
+            [0.05, 0.055],
+            [0.15, 0.160],
+            [0.30, 0.340],
+            [0.50, 0.565],
+            [0.70, 0.740],
+            [0.85, 0.870],
+            [0.95, 0.955],
+            [1.00, 0.992]
+          ]
+        },
+        "green": {
+          "control_points": [
+            [0.00, 0.012],
+            [0.05, 0.050],
+            [0.15, 0.152],
+            [0.30, 0.328],
+            [0.50, 0.548],
+            [0.70, 0.725],
+            [0.85, 0.858],
+            [0.95, 0.945],
+            [1.00, 0.988]
+          ]
+        },
+        "blue": {
+          "control_points": [
+            [0.00, 0.010],
+            [0.05, 0.042],
+            [0.15, 0.135],
+            [0.30, 0.300],
+            [0.50, 0.510],
+            [0.70, 0.690],
+            [0.85, 0.825],
+            [0.95, 0.918],
+            [1.00, 0.965]
+          ]
+        }
+      },
+
+      "saturation_multiplier": 1.05,
+
+      "shadow_hue_shift": {
+        "angle_degrees": 8.0,
+        "strength": 0.10,
+        "range_end": 0.20
+      },
+      "highlight_hue_shift": {
+        "angle_degrees": 15.0,
+        "strength": 0.14,
+        "range_start": 0.70
+      },
+
+      "halation": {
+        "enabled": true,
+        "colour": [1.0, 0.75, 0.30],
+        "radius": 12.0,
+        "intensity": 0.04
+      },
+
+      "grain": {
+        "enabled": false,
+        "size": 1.0,
+        "intensity": 0.0,
+        "luminance_weight": 0.80,
+        "colour_weight": 0.20,
+        "clumping": 0.30,
+        "iso_responsive": true,
+        "iso_base": 100
+      },
+
+      "exposure_bias": 0.10,
+      "white_balance_shift_kelvin": 800,
+      "vignette_strength": 0.06
+    },
+
+    {
+      "stock_name": "LUMEN Bleach",
+      "stock_id": "lumen_bleach",
+      "description": "Atmospheric, melancholic desaturated look. Cool blue tones, heavily muted colour, lifted shadows. Inspired by Leica Bleach.",
+      "category": "colour",
+      "inspired_by": "Leica Bleach",
+
+      "dye_coupler_matrix": [
+        [0.960,  0.015,  0.010],
+        [0.010,  0.970,  0.015],
+        [0.005,  0.010,  1.020]
+      ],
+
+      "tone_curve": {
+        "red": {
+          "control_points": [
+            [0.00, 0.080],
+            [0.05, 0.105],
+            [0.15, 0.175],
+            [0.30, 0.310],
+            [0.50, 0.510],
+            [0.70, 0.695],
+            [0.85, 0.835],
+            [0.95, 0.930],
+            [1.00, 0.975]
+          ]
+        },
+        "green": {
+          "control_points": [
+            [0.00, 0.085],
+            [0.05, 0.110],
+            [0.15, 0.178],
+            [0.30, 0.312],
+            [0.50, 0.512],
+            [0.70, 0.698],
+            [0.85, 0.838],
+            [0.95, 0.932],
+            [1.00, 0.976]
+          ]
+        },
+        "blue": {
+          "control_points": [
+            [0.00, 0.095],
+            [0.05, 0.122],
+            [0.15, 0.192],
+            [0.30, 0.325],
+            [0.50, 0.525],
+            [0.70, 0.705],
+            [0.85, 0.842],
+            [0.95, 0.935],
+            [1.00, 0.978]
+          ]
+        }
+      },
+
+      "saturation_multiplier": 0.55,
+
+      "shadow_hue_shift": {
+        "angle_degrees": -15.0,
+        "strength": 0.12,
+        "range_end": 0.30
+      },
+      "highlight_hue_shift": {
+        "angle_degrees": -8.0,
+        "strength": 0.08,
+        "range_start": 0.75
+      },
+
+      "halation": {
+        "enabled": false,
+        "colour": [0.7, 0.8, 1.0],
+        "radius": 0.0,
+        "intensity": 0.0
+      },
+
+      "grain": {
+        "enabled": true,
+        "size": 1.2,
+        "intensity": 0.07,
+        "luminance_weight": 0.75,
+        "colour_weight": 0.25,
+        "clumping": 0.30,
+        "iso_responsive": true,
+        "iso_base": 100
+      },
+
+      "exposure_bias": 0.0,
+      "white_balance_shift_kelvin": -500,
+      "vignette_strength": 0.15
+    },
+
+    {
+      "stock_name": "LUMEN Teal",
+      "stock_id": "lumen_teal",
+      "description": "Cinematic cool blue-green mood. Classic teal-orange colour grading territory. Ideal for urban and landscape. Inspired by Leica Teal.",
+      "category": "colour",
+      "inspired_by": "Leica Teal",
+
+      "dye_coupler_matrix": [
+        [0.975,  0.005, -0.015],
+        [0.010,  0.985,  0.020],
+        [-0.005, 0.020,  1.035]
+      ],
+
+      "tone_curve": {
+        "red": {
+          "control_points": [
+            [0.00, 0.015],
+            [0.05, 0.045],
+            [0.15, 0.140],
+            [0.30, 0.310],
+            [0.50, 0.530],
+            [0.70, 0.715],
+            [0.85, 0.850],
+            [0.95, 0.940],
+            [1.00, 0.982]
+          ]
+        },
+        "green": {
+          "control_points": [
+            [0.00, 0.018],
+            [0.05, 0.050],
+            [0.15, 0.148],
+            [0.30, 0.325],
+            [0.50, 0.545],
+            [0.70, 0.725],
+            [0.85, 0.858],
+            [0.95, 0.945],
+            [1.00, 0.985]
+          ]
+        },
+        "blue": {
+          "control_points": [
+            [0.00, 0.025],
+            [0.05, 0.058],
+            [0.15, 0.160],
+            [0.30, 0.342],
+            [0.50, 0.560],
+            [0.70, 0.735],
+            [0.85, 0.862],
+            [0.95, 0.948],
+            [1.00, 0.988]
+          ]
+        }
+      },
+
+      "saturation_multiplier": 0.90,
+
+      "shadow_hue_shift": {
+        "angle_degrees": -20.0,
+        "strength": 0.15,
+        "range_end": 0.28
+      },
+      "highlight_hue_shift": {
+        "angle_degrees": 18.0,
+        "strength": 0.10,
+        "range_start": 0.72
+      },
+
+      "halation": {
+        "enabled": false,
+        "colour": [0.5, 0.9, 1.0],
+        "radius": 0.0,
+        "intensity": 0.0
+      },
+
+      "grain": {
+        "enabled": true,
+        "size": 1.1,
+        "intensity": 0.05,
+        "luminance_weight": 0.80,
+        "colour_weight": 0.20,
+        "clumping": 0.25,
+        "iso_responsive": true,
+        "iso_base": 100
+      },
+
+      "exposure_bias": -0.10,
+      "white_balance_shift_kelvin": -300,
+      "vignette_strength": 0.12
+    },
+
+    {
+      "stock_name": "LUMEN Silver",
+      "stock_id": "lumen_silver",
+      "description": "Cool-toned black and white. Smooth contrast with slightly lifted shadows. Modern monochrome. Inspired by Leica Silver.",
+      "category": "monochrome",
+      "inspired_by": "Leica Silver",
+
+      "channel_mix": {
+        "red": 0.28,
+        "green": 0.58,
+        "blue": 0.14
+      },
+
+      "monochrome_tint": {
+        "enabled": true,
+        "hue_degrees": 210,
+        "saturation": 0.03
+      },
+
+      "dye_coupler_matrix": [
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0]
+      ],
+
+      "tone_curve": {
+        "luminance": {
+          "control_points": [
+            [0.00, 0.045],
+            [0.05, 0.070],
+            [0.15, 0.155],
+            [0.30, 0.315],
+            [0.50, 0.535],
+            [0.70, 0.720],
+            [0.85, 0.855],
+            [0.95, 0.948],
+            [1.00, 0.990]
+          ]
+        }
+      },
+
+      "saturation_multiplier": 0.0,
+
+      "shadow_hue_shift": {
+        "angle_degrees": 0.0,
+        "strength": 0.0,
+        "range_end": 0.25
+      },
+      "highlight_hue_shift": {
+        "angle_degrees": 0.0,
+        "strength": 0.0,
+        "range_start": 0.75
+      },
+
+      "halation": {
+        "enabled": false,
+        "colour": [1.0, 1.0, 1.0],
+        "radius": 0.0,
+        "intensity": 0.0
+      },
+
+      "grain": {
+        "enabled": true,
+        "size": 1.0,
+        "intensity": 0.08,
+        "luminance_weight": 1.00,
+        "colour_weight": 0.00,
+        "clumping": 0.30,
+        "iso_responsive": true,
+        "iso_base": 100
+      },
+
+      "exposure_bias": 0.0,
+      "white_balance_shift_kelvin": 0,
+      "vignette_strength": 0.08
+    },
+
+    {
+      "stock_name": "LUMEN Mono HC",
+      "stock_id": "lumen_mono_hc",
+      "description": "High contrast black and white. Deep blacks, bright whites, dramatic tonal separation. Inspired by Leica Monochrome High Contrast.",
+      "category": "monochrome",
+      "inspired_by": "Leica Monochrome High Contrast",
+
+      "channel_mix": {
+        "red": 0.35,
+        "green": 0.50,
+        "blue": 0.15
+      },
+
+      "monochrome_tint": {
+        "enabled": false,
+        "hue_degrees": 0,
+        "saturation": 0.0
+      },
+
+      "dye_coupler_matrix": [
+        [1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, 0.0, 1.0]
+      ],
+
+      "tone_curve": {
+        "luminance": {
+          "control_points": [
+            [0.00, 0.005],
+            [0.05, 0.020],
+            [0.12, 0.080],
+            [0.25, 0.240],
+            [0.40, 0.450],
+            [0.50, 0.580],
+            [0.60, 0.700],
+            [0.75, 0.820],
+            [0.85, 0.900],
+            [0.95, 0.965],
+            [1.00, 1.000]
+          ]
+        }
+      },
+
+      "saturation_multiplier": 0.0,
+
+      "shadow_hue_shift": {
+        "angle_degrees": 0.0,
+        "strength": 0.0,
+        "range_end": 0.25
+      },
+      "highlight_hue_shift": {
+        "angle_degrees": 0.0,
+        "strength": 0.0,
+        "range_start": 0.75
+      },
+
+      "halation": {
+        "enabled": false,
+        "colour": [1.0, 1.0, 1.0],
+        "radius": 0.0,
+        "intensity": 0.0
+      },
+
+      "grain": {
+        "enabled": true,
+        "size": 1.3,
+        "intensity": 0.10,
+        "luminance_weight": 1.00,
+        "colour_weight": 0.00,
+        "clumping": 0.40,
+        "iso_responsive": true,
+        "iso_base": 100
+      },
+
+      "exposure_bias": 0.0,
+      "white_balance_shift_kelvin": 0,
+      "vignette_strength": 0.05
+    }
+
+  ]
+}

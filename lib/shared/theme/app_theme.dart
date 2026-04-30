@@ -1,25 +1,34 @@
 import 'package:flutter/material.dart';
+import 'lumen_theme.dart';
 
-/// Placeholder dark theme. Full UI design pass happens pre-release.
 class AppTheme {
   AppTheme._();
 
   static ThemeData get dark => ThemeData(
         brightness: Brightness.dark,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFD4AF37), // warm gold accent
+          seedColor: kAmber,
           brightness: Brightness.dark,
+        ).copyWith(
+          surface: kBg,
+          onSurface: kText,
+          primary: kAmber,
         ),
         useMaterial3: true,
-        scaffoldBackgroundColor: const Color(0xFF0A0A0A),
+        scaffoldBackgroundColor: kBg,
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF0A0A0A),
-          foregroundColor: Colors.white,
+          backgroundColor: kBg,
+          foregroundColor: kText,
           elevation: 0,
         ),
         sliderTheme: const SliderThemeData(
-          activeTrackColor: Color(0xFFD4AF37),
-          thumbColor: Color(0xFFD4AF37),
+          activeTrackColor: kAmber,
+          thumbColor: kAmber,
+          inactiveTrackColor: kHair,
+        ),
+        snackBarTheme: SnackBarThemeData(
+          backgroundColor: kSheet,
+          contentTextStyle: TextStyle(color: kText, fontSize: 12),
         ),
       );
 }

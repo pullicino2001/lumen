@@ -1,9 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/edit_state.dart';
 import '../models/basic_editor_settings.dart';
-import '../models/film_stock.dart';
 import '../models/bloom_settings.dart';
+import '../models/film_stock.dart';
 import '../models/grain_settings.dart';
+import '../models/import_profile.dart';
 import '../models/lens_profile.dart';
 
 /// Notifier that manages the full [EditState] for the active edit session.
@@ -14,10 +15,11 @@ class EditStateNotifier extends Notifier<EditState?> {
   EditState? build() => null;
 
   /// Loads a new photo into the editor, replacing any existing session.
-  void load(String originalPath, String workingPath) {
+  void load(String originalPath, String workingPath, String proxyPath) {
     state = EditState(
       originalFilePath: originalPath,
       workingFilePath: workingPath,
+      proxyFilePath: proxyPath,
     );
   }
 
@@ -72,6 +74,23 @@ class EditStateNotifier extends Notifier<EditState?> {
   /// Toggles the lens profile layer on/off.
   void toggleLens() {
     state = state?.copyWith(lensEnabled: !(state?.lensEnabled ?? true));
+  }
+
+  /// Toggles the LUMEN Look on/off.
+  void toggleLumenLook() {
+    if (state == null) return;
+    final next = state!.importProfile == ImportProfile.lumen
+        ? ImportProfile.standard
+        : ImportProfile.lumen;
+    state = state!.copyWith(importProfile: next);
+  }
+
+  /// Records the path to the LUMEN-processed proxy.
+  /// Guards against stale callbacks from a previous session.
+  void setLumenProxyPath(String sourceProxyPath, String lumenPath) {
+    if (state?.proxyFilePath == sourceProxyPath) {
+      state = state!.copyWith(lumenProxyPath: lumenPath);
+    }
   }
 }
 

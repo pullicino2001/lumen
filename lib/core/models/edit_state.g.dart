@@ -10,6 +10,7 @@ _$EditStateImpl _$$EditStateImplFromJson(Map<String, dynamic> json) =>
     _$EditStateImpl(
       originalFilePath: json['originalFilePath'] as String,
       workingFilePath: json['workingFilePath'] as String,
+      proxyFilePath: json['proxyFilePath'] as String,
       basicEditor: json['basicEditor'] == null
           ? const BasicEditorSettings()
           : BasicEditorSettings.fromJson(
@@ -32,6 +33,10 @@ _$EditStateImpl _$$EditStateImplFromJson(Map<String, dynamic> json) =>
       grainEnabled: json['grainEnabled'] as bool? ?? true,
       bloomEnabled: json['bloomEnabled'] as bool? ?? true,
       basicEditorEnabled: json['basicEditorEnabled'] as bool? ?? true,
+      importProfile:
+          $enumDecodeNullable(_$ImportProfileEnumMap, json['importProfile']) ??
+          ImportProfile.lumen,
+      lumenProxyPath: json['lumenProxyPath'] as String? ?? null,
       generatedFilePath: json['generatedFilePath'] as String? ?? null,
     );
 
@@ -39,6 +44,7 @@ Map<String, dynamic> _$$EditStateImplToJson(_$EditStateImpl instance) =>
     <String, dynamic>{
       'originalFilePath': instance.originalFilePath,
       'workingFilePath': instance.workingFilePath,
+      'proxyFilePath': instance.proxyFilePath,
       'basicEditor': instance.basicEditor,
       'lensProfile': instance.lensProfile,
       'filmStock': instance.filmStock,
@@ -49,5 +55,12 @@ Map<String, dynamic> _$$EditStateImplToJson(_$EditStateImpl instance) =>
       'grainEnabled': instance.grainEnabled,
       'bloomEnabled': instance.bloomEnabled,
       'basicEditorEnabled': instance.basicEditorEnabled,
+      'importProfile': _$ImportProfileEnumMap[instance.importProfile]!,
+      'lumenProxyPath': instance.lumenProxyPath,
       'generatedFilePath': instance.generatedFilePath,
     };
+
+const _$ImportProfileEnumMap = {
+  ImportProfile.standard: 'standard',
+  ImportProfile.lumen: 'lumen',
+};

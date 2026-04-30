@@ -17,7 +17,7 @@ final renderedPreviewProvider = FutureProvider<ui.Image?>((ref) async {
   if (state == null) return null;
 
   final program = await ref.watch(basicEditorProgramProvider.future);
-  final source  = await ref.watch(previewImageProvider.future);
+  final source  = await ref.watch(shaderSourceProvider.future);
   if (source == null) return null;
 
   final processed = await EffectEngine().apply(

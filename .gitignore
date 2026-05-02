@@ -41,6 +41,7 @@ app.*.map.json
 
 # Firebase distribution secrets
 scripts/firebase-distribute/.env
+scripts/distribute/.env
 
 # Android Studio will place build artifacts here
 /android/app/debug

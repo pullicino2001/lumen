@@ -75,20 +75,37 @@ class ModTone extends ConsumerStatefulWidget {
   ConsumerState<ModTone> createState() => _ModToneState();
 }
 
-class _ModToneState extends ConsumerState<ModTone> {
+class _ModToneState extends ConsumerState<ModTone>
+    with SingleTickerProviderStateMixin {
   _ToneParam _active = _ToneParam.highlights;
-
-  // Vertical drag accumulation drives the precision multiplier.
-  // Dragging upward increases _verticalDragAccum → lower precisionFactor → finer steps.
   double _verticalDragAccum = 0;
+  late AnimationController _expandAnim;
 
   double get _precisionFactor =>
       1.0 / (1.0 + (_verticalDragAccum.clamp(0.0, 240.0) / 60.0));
 
+  @override
+  void initState() {
+    super.initState();
+    _expandAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    )..addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _expandAnim.dispose();
+    super.dispose();
+  }
+
+  void _onPanStart(DragStartDetails _) {
+    _expandAnim.animateTo(1.0, curve: Curves.easeOut);
+  }
+
   void _onPanUpdate(DragUpdateDetails d, double minVal, double maxVal) {
     bool needsRebuild = false;
 
-    // Upward drag (negative dy) accumulates precision.
     final upDelta = -d.delta.dy;
     if (upDelta != 0) {
       final next = (_verticalDragAccum + upDelta).clamp(0.0, 240.0);
@@ -98,11 +115,12 @@ class _ModToneState extends ConsumerState<ModTone> {
       }
     }
 
-    // Horizontal drag changes value, scaled by current precision factor.
     final dx = d.delta.dx;
     if (dx != 0) {
       final range = maxVal - minVal;
-      final valueDelta = dx / 160.0 * range * _precisionFactor;
+      // Expanded dial reduces sensitivity → finer control while dragging.
+      final expandFactor = 1.0 - _expandAnim.value * 0.45;
+      final valueDelta = dx / 160.0 * range * _precisionFactor * expandFactor;
       final s = ref.read(editStateProvider)?.basicEditor;
       if (s != null) {
         final cur = _active.getValue(s);
@@ -115,6 +133,7 @@ class _ModToneState extends ConsumerState<ModTone> {
   }
 
   void _onPanEnd(DragEndDetails _) {
+    _expandAnim.animateTo(0.0, curve: Curves.easeIn);
     if (_verticalDragAccum != 0) setState(() => _verticalDragAccum = 0);
   }
 
@@ -146,6 +165,7 @@ class _ModToneState extends ConsumerState<ModTone> {
       children: [
         Expanded(
           child: GestureDetector(
+            onPanStart: _onPanStart,
             onPanUpdate: (d) => _onPanUpdate(d, minVal, maxVal),
             onPanEnd: _onPanEnd,
             onDoubleTap: _resetActive,
@@ -158,6 +178,7 @@ class _ModToneState extends ConsumerState<ModTone> {
                     paramLabel: _active.label,
                     displayValue: displayVal,
                     precisionFactor: _precisionFactor,
+                    dragExpand: _expandAnim.value,
                   ),
                   size: const Size(240, 200),
                 ),
@@ -186,6 +207,7 @@ class _DialPainter extends CustomPainter {
     required this.paramLabel,
     required this.displayValue,
     this.precisionFactor = 1.0,
+    this.dragExpand = 0.0,
   });
 
   final double pct;
@@ -193,6 +215,8 @@ class _DialPainter extends CustomPainter {
   final String paramLabel;
   final String displayValue;
   final double precisionFactor;
+  // 0.0 = idle, 1.0 = actively dragging — drives ring/tick/thumb expansion.
+  final double dragExpand;
 
   static const double startDeg = -210;
   static const double endDeg   =   30;
@@ -200,8 +224,10 @@ class _DialPainter extends CustomPainter {
   static const double dcx      = 120;
   static const double dcy      = 110;
 
-  // Dial radius expands in precision mode (max +10 px).
-  double get _dR => 92.0 + (1.0 - precisionFactor.clamp(0.0, 1.0)) * 10.0;
+  double get _dR =>
+      92.0
+      + (1.0 - precisionFactor.clamp(0.0, 1.0)) * 10.0
+      + dragExpand * 16.0;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -217,14 +243,18 @@ class _DialPainter extends CustomPainter {
     final zeroAngle = startDeg + span * zeroPct;
     final pt       = toXY(angle);
 
-    // Outer ring — grows with precision.
+    // Outer ring — glows brighter while dragging.
     canvas.drawCircle(
       const Offset(dcx, dcy),
       dR + 6,
-      Paint()..color = kHair..style = PaintingStyle.stroke..strokeWidth = 0.5,
+      Paint()
+        ..color = kText.withValues(alpha: 0.22 + dragExpand * 0.55)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.5 + dragExpand * 0.8,
     );
 
-    // Ticks — more in precision mode (49 → 97).
+    // Ticks: count stays fixed during drag-expand so gaps grow with the ring.
+    // Vertical-precision mode (upward swipe) doubles the count for density.
     final tickCount = 49 + ((1.0 - precisionFactor.clamp(0.0, 1.0)) * 48).round();
     final majorPeriod = tickCount > 49 ? 16 : 12;
     for (int i = 0; i < tickCount; i++) {
@@ -234,12 +264,15 @@ class _DialPainter extends CustomPainter {
       final inArc = zeroPct <= pct
           ? frac >= zeroPct && frac <= pct
           : frac <= zeroPct && frac >= pct;
-      final r1 = dR - (isMajor ? 11.0 : 7.0);
+      // Ticks grow taller while dragging to emphasise the expanded ring.
+      final majorLen = 11.0 + dragExpand * 5.0;
+      final minorLen =  7.0 + dragExpand * 3.0;
+      final r1 = dR - (isMajor ? majorLen : minorLen);
       canvas.drawLine(
         toXY(tickDeg, r: r1),
         toXY(tickDeg, r: dR - 2),
         Paint()
-          ..color = inArc ? kAmber : kHair
+          ..color = inArc ? kAmber : kText.withValues(alpha: 0.28)
           ..strokeWidth = isMajor ? 1.2 : 0.7,
       );
     }
@@ -248,7 +281,7 @@ class _DialPainter extends CustomPainter {
     canvas.drawLine(
       toXY(zeroAngle, r: dR - 2),
       toXY(zeroAngle, r: dR + 8),
-      Paint()..color = kText.withValues(alpha: 0.5)..strokeWidth = 1.2,
+      Paint()..color = kText.withValues(alpha: 0.75)..strokeWidth = 1.2,
     );
 
     // Active arc.
@@ -265,11 +298,13 @@ class _DialPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round,
     );
 
-    // Chromatic pointer.
-    canvas.drawCircle(pt.translate(-1.5, 0), 6, Paint()..color = kRed.withValues(alpha: 0.55));
-    canvas.drawCircle(pt.translate(1.5, 0),  6, Paint()..color = kTeal.withValues(alpha: 0.55));
-    canvas.drawCircle(pt, 6.5, Paint()..color = kAmber);
-    canvas.drawCircle(pt, 13,  Paint()..color = kAmber.withValues(alpha: 0.14));
+    // Chromatic pointer — expands while dragging.
+    final thumbR  = 6.5 + dragExpand * 3.0;
+    final chromaR = thumbR - 0.5;
+    canvas.drawCircle(pt.translate(-1.5, 0), chromaR, Paint()..color = kRed.withValues(alpha: 0.55));
+    canvas.drawCircle(pt.translate(1.5, 0),  chromaR, Paint()..color = kTeal.withValues(alpha: 0.55));
+    canvas.drawCircle(pt, thumbR,       Paint()..color = kAmber);
+    canvas.drawCircle(pt, thumbR * 2.0, Paint()..color = kAmber.withValues(alpha: 0.14));
 
     // Param label.
     _text(canvas, paramLabel,
@@ -311,7 +346,8 @@ class _DialPainter extends CustomPainter {
       old.pct != pct ||
       old.paramLabel != paramLabel ||
       old.displayValue != displayValue ||
-      old.precisionFactor != precisionFactor;
+      old.precisionFactor != precisionFactor ||
+      old.dragExpand != dragExpand;
 }
 
 class _ParamWheel extends StatelessWidget {

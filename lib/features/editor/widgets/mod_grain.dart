@@ -1,8 +1,9 @@
-import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/models/grain_settings.dart';
 import '../../../core/providers/edit_state_provider.dart';
+import '../../../core/providers/rendered_preview_provider.dart';
 import '../../../shared/theme/lumen_theme.dart';
 import 'chromatic_slider.dart';
 
@@ -62,103 +63,154 @@ class ModGrain extends ConsumerWidget {
   }
 }
 
-class _GrainField extends StatelessWidget {
+class _GrainField extends ConsumerStatefulWidget {
   const _GrainField({required this.intensity});
   final double intensity;
 
   @override
+  ConsumerState<_GrainField> createState() => _GrainFieldState();
+}
+
+class _GrainFieldState extends ConsumerState<_GrainField> {
+  ui.Image? _image;
+  // Normalized center of the crop window (0..1 in each axis).
+  Offset _anchor = const Offset(0.5, 0.5);
+  static const double _zoom = 4.0;
+  static const double _containerH = 90.0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Seed from whatever is already resolved so we never start blank.
+    ref.read(renderedPreviewProvider).whenData((img) {
+      if (img != null && mounted) setState(() => _image = img);
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 90,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: kHair, width: 0.5),
-        color: const Color(0xFF111111),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: const BoxDecoration(
-                gradient: RadialGradient(
-                  center: Alignment.center,
-                  radius: 1,
-                  colors: [Color(0xFF2A1D0E), Color(0xFF050403)],
-                ),
-              ),
-            ),
+    ref.listen(renderedPreviewProvider, (_, next) {
+      next.whenData((img) {
+        if (img != null && mounted) setState(() => _image = img);
+      });
+    });
+
+    return LayoutBuilder(builder: (context, constraints) {
+      final containerW = constraints.maxWidth;
+
+      return GestureDetector(
+        onPanUpdate: (d) {
+          final img = _image;
+          if (img == null) return;
+
+          final imgW = img.width.toDouble();
+          final imgH = img.height.toDouble();
+          final crop = _cropRect(imgW, imgH, containerW, _containerH, _anchor);
+
+          // Map widget-pixel drag to image-fraction shift.
+          final dAnchorX = -d.delta.dx * (crop.width  / imgW) / containerW;
+          final dAnchorY = -d.delta.dy * (crop.height / imgH) / _containerH;
+
+          final halfCropFracX = (crop.width  / 2) / imgW;
+          final halfCropFracY = (crop.height / 2) / imgH;
+
+          setState(() {
+            _anchor = Offset(
+              (_anchor.dx + dAnchorX).clamp(halfCropFracX, 1.0 - halfCropFracX),
+              (_anchor.dy + dAnchorY).clamp(halfCropFracY, 1.0 - halfCropFracY),
+            );
+          });
+        },
+        onDoubleTap: () => setState(() => _anchor = const Offset(0.5, 0.5)),
+        child: Container(
+          height: _containerH,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: kHair, width: 0.5),
+            color: const Color(0xFF111111),
           ),
-          Positioned.fill(
-            child: Opacity(
-              opacity: (intensity / 100).clamp(0.05, 1.0),
-              child: CustomPaint(painter: _GrainPainter()),
-            ),
-          ),
-          Positioned(
-            top: 8,
-            right: 8,
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: kAmber, width: 1),
-                boxShadow: [BoxShadow(color: kAmber.withValues(alpha: 0.4), blurRadius: 16)],
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: DecoratedBox(
-                      decoration: const BoxDecoration(
-                        gradient: RadialGradient(
-                          colors: [Color(0xFF3A2A18), Color(0xFF0A0605)],
-                        ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            children: [
+              if (_image != null)
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _ZoomedImagePainter(
+                      image: _image!,
+                      anchor: _anchor,
+                      zoom: _zoom,
+                    ),
+                  ),
+                )
+              else
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(
+                      gradient: RadialGradient(
+                        center: Alignment.center,
+                        radius: 1,
+                        colors: [Color(0xFF2A1D0E), Color(0xFF050403)],
                       ),
                     ),
                   ),
-                  Positioned.fill(
-                    child: Opacity(
-                      opacity: (intensity / 100 * 1.8).clamp(0.05, 1.0),
-                      child: CustomPaint(painter: _GrainPainter(scale: 0.4)),
-                    ),
-                  ),
-                ],
+                ),
+              Positioned(
+                bottom: 6,
+                left: 10,
+                child: Text(
+                  _image != null ? 'DRAG  ·  ${_zoom.toInt()}× ZOOM' : 'LOADING',
+                  style: monoStyle(size: 7, letterSpacing: 1.5, color: kMute),
+                ),
               ),
-            ),
+            ],
           ),
-          Positioned(
-            bottom: 6,
-            left: 10,
-            child: Text('100% ZOOM', style: monoStyle(size: 8, letterSpacing: 2)),
-          ),
-        ],
-      ),
-    );
+        ),
+      );
+    });
+  }
+
+  // Computes the aspect-correct source crop in image pixels.
+  static Rect _cropRect(
+      double imgW, double imgH, double wW, double wH, Offset anchor) {
+    final widgetAspect = wW / wH;
+    final imgAspect = imgW / imgH;
+    double cropW, cropH;
+    if (widgetAspect > imgAspect) {
+      cropW = imgW / _zoom;
+      cropH = cropW / widgetAspect;
+    } else {
+      cropH = imgH / _zoom;
+      cropW = cropH * widgetAspect;
+    }
+    final l = (anchor.dx * imgW - cropW / 2).clamp(0.0, imgW - cropW);
+    final t = (anchor.dy * imgH - cropH / 2).clamp(0.0, imgH - cropH);
+    return Rect.fromLTWH(l, t, cropW, cropH);
   }
 }
 
-class _GrainPainter extends CustomPainter {
-  const _GrainPainter({this.scale = 1.0});
-  final double scale;
+class _ZoomedImagePainter extends CustomPainter {
+  const _ZoomedImagePainter({
+    required this.image,
+    required this.anchor,
+    required this.zoom,
+  });
+
+  final ui.Image image;
+  final Offset anchor;
+  final double zoom;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rng = math.Random(42);
-    final paint = Paint()..color = kText;
-    final count = (size.width * size.height * 0.08 * scale).round();
-    for (int i = 0; i < count; i++) {
-      final x = rng.nextDouble() * size.width;
-      final y = rng.nextDouble() * size.height;
-      final r = rng.nextDouble() * 0.8 * scale + 0.2;
-      paint.color = kText.withValues(alpha: rng.nextDouble() * 0.6 + 0.2);
-      canvas.drawCircle(Offset(x, y), r, paint);
-    }
+    final imgW = image.width.toDouble();
+    final imgH = image.height.toDouble();
+    final src = _GrainFieldState._cropRect(imgW, imgH, size.width, size.height, anchor);
+    final dst = Offset.zero & size;
+    canvas.drawImageRect(image, src, dst, Paint()..filterQuality = FilterQuality.medium);
   }
 
   @override
-  bool shouldRepaint(_GrainPainter old) => false;
+  bool shouldRepaint(_ZoomedImagePainter old) =>
+      old.image != image || old.anchor != anchor || old.zoom != zoom;
 }
 
 class _ChipRow<T> extends StatelessWidget {

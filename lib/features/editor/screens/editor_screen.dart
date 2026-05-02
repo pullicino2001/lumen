@@ -203,12 +203,35 @@ class _HybridEditor extends StatefulWidget {
 
 class _HybridEditorState extends State<_HybridEditor> {
   double? _sheetH;
+  List<Rect>? _lastExclusionRects;
 
   // Fixed heights of the non-module chrome inside the sheet:
   //   handle 20 + header ~80 + tab dock ~72 = 172
   // Plus a minimum module content area (200) so the hero never collapses.
   static const double _kSheetChrome = 172.0;
   static const double _kMinModuleH  = 200.0;
+
+  // Exclude the left/right edges of the bottom panel from Android's back gesture.
+  void _syncGestureExclusion(double sheetH, Size screenSize) {
+    if (!Platform.isAndroid) return;
+    const edgeW = 24.0;
+    final top = screenSize.height - sheetH;
+    final rects = [
+      Rect.fromLTWH(0, top, edgeW, sheetH),
+      Rect.fromLTWH(screenSize.width - edgeW, top, edgeW, sheetH),
+    ];
+    if (_lastExclusionRects != null &&
+        _lastExclusionRects![0] == rects[0] &&
+        _lastExclusionRects![1] == rects[1]) return;
+    _lastExclusionRects = rects;
+    SystemChrome.setSystemGestureExclusionRects(rects);
+  }
+
+  @override
+  void dispose() {
+    if (Platform.isAndroid) SystemChrome.setSystemGestureExclusionRects([]);
+    super.dispose();
+  }
 
   void _onHandleDrag(double dy) {
     final mq      = MediaQuery.of(context);
@@ -236,6 +259,10 @@ class _HybridEditorState extends State<_HybridEditor> {
     final min    = _kSheetChrome + _kMinModuleH + botPad;
     final max    = screenH - topPad - 160.0;
     final sheetH = (_sheetH ?? screenH * 0.50).clamp(min, max);
+
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) { if (mounted) _syncGestureExclusion(sheetH, mq.size); },
+    );
 
     return Stack(
       children: [

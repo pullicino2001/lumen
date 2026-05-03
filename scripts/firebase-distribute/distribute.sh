@@ -34,10 +34,10 @@ if [[ -z "$RELEASE_NOTES" ]]; then
   RELEASE_NOTES="$(git -C "$PROJECT_ROOT" log -1 --pretty=format:'%s' 2>/dev/null || echo 'Latest build')"
 fi
 
-APK_PATH="$PROJECT_ROOT/build/app/outputs/flutter-apk/app-release.apk"
+APK_PATH="$PROJECT_ROOT/build/app/outputs/flutter-apk/app-arm64-v8a-release.apk"
 
 echo "🔨  Building release APK..."
-(cd "$PROJECT_ROOT" && flutter build apk --release)
+(cd "$PROJECT_ROOT" && flutter build apk --release --split-per-abi)
 
 echo ""
 echo "🚀  Uploading to Firebase App Distribution..."

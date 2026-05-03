@@ -16,6 +16,7 @@ import '../../../core/services/lumen_look_service.dart';
 import '../../../core/services/effect_engine.dart';
 import '../../../core/services/export_service.dart';
 import '../../../shared/theme/lumen_theme.dart';
+import '../widgets/export_sheet.dart';
 import '../widgets/shader_preview.dart';
 import '../widgets/mod_look.dart';
 import '../widgets/mod_tone.dart';
@@ -103,7 +104,25 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     }
   }
 
-  Future<void> _exportPhoto() async {
+  Future<void> _showExportSheet() async {
+    if (_exporting) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => ExportSheet(
+        onExport: (format, quality) async {
+          if (mounted) Navigator.of(context).pop();
+          await _exportPhoto(format: format, jpegQuality: quality);
+        },
+      ),
+    );
+  }
+
+  Future<void> _exportPhoto({
+    ExportFormat format = ExportFormat.jpeg,
+    int jpegQuality = 95,
+  }) async {
     final state = ref.read(editStateProvider);
     if (state == null) return;
     setState(() => _exporting = true);
@@ -132,10 +151,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         program:       program,
         bloomPrograms: bloomPrograms,
       );
-      final outputPath = await ExportService().export(processed, state);
+      final outputPath = await ExportService().export(
+        processed,
+        state,
+        format: format,
+        jpegQuality: jpegQuality,
+      );
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Saved: $outputPath')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Saved: $outputPath')),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -169,7 +194,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ? _HybridEditor(
               activeModule: _activeModule,
               onModuleChanged: (m) => setState(() => _activeModule = m),
-              onExport: _exporting ? null : _exportPhoto,
+              onExport: _exporting ? null : _showExportSheet,
               exporting: _exporting,
             )
           : _ImportScreen(
@@ -224,12 +249,18 @@ class _HybridEditorState extends State<_HybridEditor> {
         _lastExclusionRects![0] == rects[0] &&
         _lastExclusionRects![1] == rects[1]) return;
     _lastExclusionRects = rects;
-    SystemChrome.setSystemGestureExclusionRects(rects);
+    SystemChannels.platform.invokeMethod<void>(
+      'SystemChrome.setSystemGestureExclusionRects',
+      rects.map((r) => {'left': r.left, 'top': r.top, 'right': r.right, 'bottom': r.bottom}).toList(),
+    );
   }
 
   @override
   void dispose() {
-    if (Platform.isAndroid) SystemChrome.setSystemGestureExclusionRects([]);
+    if (Platform.isAndroid) {
+      SystemChannels.platform.invokeMethod<void>(
+        'SystemChrome.setSystemGestureExclusionRects', <Map<String, double>>[]);
+    }
     super.dispose();
   }
 

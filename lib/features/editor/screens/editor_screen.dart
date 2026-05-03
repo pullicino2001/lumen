@@ -54,6 +54,7 @@ class EditorScreen extends ConsumerStatefulWidget {
 class _EditorScreenState extends ConsumerState<EditorScreen> {
   bool _importing = false;
   bool _exporting = false;
+  bool _fullscreen = false;
   _Module _activeModule = _Module.look;
 
   @override
@@ -191,12 +192,17 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     return Scaffold(
       backgroundColor: kBg,
       body: hasPhoto
-          ? _HybridEditor(
-              activeModule: _activeModule,
-              onModuleChanged: (m) => setState(() => _activeModule = m),
-              onExport: _exporting ? null : _showExportSheet,
-              exporting: _exporting,
-            )
+          ? (_fullscreen
+              ? _FullscreenPreview(
+                  onExit: () => setState(() => _fullscreen = false),
+                )
+              : _HybridEditor(
+                  activeModule: _activeModule,
+                  onModuleChanged: (m) => setState(() => _activeModule = m),
+                  onExport: _exporting ? null : _showExportSheet,
+                  exporting: _exporting,
+                  onEnterFullscreen: () => setState(() => _fullscreen = true),
+                ))
           : _ImportScreen(
               importing: _importing,
               onImport: _importPhoto,
@@ -215,12 +221,14 @@ class _HybridEditor extends StatefulWidget {
     required this.onModuleChanged,
     required this.onExport,
     required this.exporting,
+    required this.onEnterFullscreen,
   });
 
   final _Module activeModule;
   final ValueChanged<_Module> onModuleChanged;
   final VoidCallback? onExport;
   final bool exporting;
+  final VoidCallback onEnterFullscreen;
 
   @override
   State<_HybridEditor> createState() => _HybridEditorState();
@@ -304,7 +312,7 @@ class _HybridEditorState extends State<_HybridEditor> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                const _PhotoArea(),
+                _PhotoArea(onTap: widget.onEnterFullscreen),
                 // Fade gradient toward the sheet — outside InteractiveViewer.
                 Positioned(
                   bottom: 0, left: 0, right: 0, height: 80,
@@ -366,7 +374,8 @@ class _HybridEditorState extends State<_HybridEditor> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PhotoArea extends ConsumerStatefulWidget {
-  const _PhotoArea();
+  const _PhotoArea({this.onTap});
+  final VoidCallback? onTap;
 
   @override
   ConsumerState<_PhotoArea> createState() => _PhotoAreaState();
@@ -385,6 +394,7 @@ class _PhotoAreaState extends ConsumerState<_PhotoArea> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      onTap: widget.onTap,
       onLongPressStart: (_) {
         HapticFeedback.mediumImpact();
         setState(() => _showOriginal = true);
@@ -1000,6 +1010,95 @@ class _ImportScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FULLSCREEN PREVIEW
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _FullscreenPreview extends ConsumerStatefulWidget {
+  const _FullscreenPreview({required this.onExit});
+  final VoidCallback onExit;
+
+  @override
+  ConsumerState<_FullscreenPreview> createState() => _FullscreenPreviewState();
+}
+
+class _FullscreenPreviewState extends ConsumerState<_FullscreenPreview> {
+  bool _showOriginal = false;
+  final _txController = TransformationController();
+
+  @override
+  void dispose() {
+    _txController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final topPad = MediaQuery.paddingOf(context).top;
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: GestureDetector(
+        onTap: widget.onExit,
+        onLongPressStart: (_) {
+          HapticFeedback.mediumImpact();
+          setState(() => _showOriginal = true);
+        },
+        onLongPressEnd: (_) => setState(() => _showOriginal = false),
+        child: InteractiveViewer(
+          transformationController: _txController,
+          minScale: 1.0,
+          maxScale: 6.0,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _showOriginal
+                  ? const _OriginalPreview()
+                  : const RepaintBoundary(child: ShaderPreview()),
+              // BEFORE badge
+              if (_showOriginal)
+                Positioned(
+                  top: topPad + 12, left: 0, right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: kPanelBg,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                            color: kAmber.withValues(alpha: 0.4), width: 0.5),
+                      ),
+                      child: Text('BEFORE',
+                          style: monoStyle(
+                              size: 8, color: kAmber, letterSpacing: 2.5)),
+                    ),
+                  ),
+                ),
+              // Tap-to-exit hint
+              if (!_showOriginal)
+                Positioned(
+                  top: topPad + 12, right: 14,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: kPanelBg,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                          color: kAmber.withValues(alpha: 0.2), width: 0.5),
+                    ),
+                    child: Text('TAP TO EXIT',
+                        style: monoStyle(size: 7, letterSpacing: 2)),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

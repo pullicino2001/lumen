@@ -23,6 +23,9 @@ class EditStateNotifier extends Notifier<EditState?> {
     );
   }
 
+  /// Restores a complete [EditState] — used when opening a gallery entry.
+  void restore(EditState editState) => state = editState;
+
   /// Clears the current edit session.
   void clear() => state = null;
 

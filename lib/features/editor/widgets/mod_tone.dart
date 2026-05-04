@@ -7,6 +7,10 @@ import '../../../core/providers/edit_state_provider.dart';
 import '../../../core/constants.dart';
 import '../../../shared/theme/lumen_theme.dart';
 
+// Shared between gesture handler and painter.
+const double _kDialStartDeg = -210;
+const double _kDialSpan     =  240;
+
 enum _ToneParam {
   exposure, contrast, highlights, shadows, whites, blacks, temperature, tint, saturation,
 }
@@ -75,66 +79,69 @@ class ModTone extends ConsumerStatefulWidget {
   ConsumerState<ModTone> createState() => _ModToneState();
 }
 
-class _ModToneState extends ConsumerState<ModTone>
-    with SingleTickerProviderStateMixin {
-  _ToneParam _active = _ToneParam.highlights;
-  double _verticalDragAccum = 0;
-  late AnimationController _expandAnim;
+class _ModToneState extends ConsumerState<ModTone> {
+  _ToneParam _active      = _ToneParam.highlights;
+  final      _areaKey     = GlobalKey();
+  double?    _lastHapticPct;   // tracks which tick last fired a click
 
-  double get _precisionFactor =>
-      1.0 / (1.0 + (_verticalDragAccum.clamp(0.0, 240.0) / 60.0));
-
-  @override
-  void initState() {
-    super.initState();
-    _expandAnim = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 180),
-    )..addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _expandAnim.dispose();
-    super.dispose();
+  // Fire a selection click each time the thumb crosses a tick mark (1 per graduation).
+  // Fire a medium impact when the value hits a hard limit.
+  void _maybeHaptic(double pct, bool hitLimit) {
+    if (hitLimit) {
+      if (_lastHapticPct != pct) {
+        HapticFeedback.mediumImpact();
+        _lastHapticPct = pct;
+      }
+      return;
+    }
+    const ticks = 48.0; // matches 49 drawn ticks (48 gaps)
+    final tickNow  = (pct * ticks).floor();
+    final tickLast = ((_lastHapticPct ?? -1.0) * ticks).floor();
+    if (tickNow != tickLast) {
+      HapticFeedback.selectionClick();
+      _lastHapticPct = pct;
+    }
   }
 
   void _onPanStart(DragStartDetails _) {
-    _expandAnim.animateTo(1.0, curve: Curves.easeOut);
+    final s = ref.read(editStateProvider)?.basicEditor;
+    if (s == null) return;
+    final cur = _active.getValue(s);
+    _lastHapticPct = ((cur - _active.minVal) / (_active.maxVal - _active.minVal)).clamp(0.0, 1.0);
   }
 
-  void _onPanUpdate(DragUpdateDetails d, double minVal, double maxVal) {
-    bool needsRebuild = false;
+  void _onPanUpdate(DragUpdateDetails d) {
+    final box = _areaKey.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null) return;
 
-    final upDelta = -d.delta.dy;
-    if (upDelta != 0) {
-      final next = (_verticalDragAccum + upDelta).clamp(0.0, 240.0);
-      if (next != _verticalDragAccum) {
-        _verticalDragAccum = next;
-        needsRebuild = true;
-      }
-    }
+    final s = ref.read(editStateProvider)?.basicEditor;
+    if (s == null) return;
 
-    final dx = d.delta.dx;
-    if (dx != 0) {
-      final range = maxVal - minVal;
-      // Expanded dial reduces sensitivity → finer control while dragging.
-      final expandFactor = 1.0 - _expandAnim.value * 0.45;
-      final valueDelta = dx / 160.0 * range * _precisionFactor * expandFactor;
-      final s = ref.read(editStateProvider)?.basicEditor;
-      if (s != null) {
-        final cur = _active.getValue(s);
-        final nv = (cur + valueDelta).clamp(minVal, maxVal);
-        ref.read(editStateProvider.notifier).updateBasicEditor(_active.setValue(s, nv));
-      }
-    }
+    final minVal = _active.minVal;
+    final maxVal = _active.maxVal;
+    final range  = maxVal - minVal;
+    final cur    = _active.getValue(s);
+    final pct    = ((cur - minVal) / range).clamp(0.0, 1.0);
 
-    if (needsRebuild) setState(() {});
-  }
+    // Compute the tangent direction at the current thumb position.
+    // This gives consistent sensitivity everywhere on the arc — no speed-up at the top.
+    final thumbRad  = (_kDialStartDeg + _kDialSpan * pct) * math.pi / 180;
+    final tangentX  = -math.sin(thumbRad);
+    final tangentY  =  math.cos(thumbRad);
 
-  void _onPanEnd(DragEndDetails _) {
-    _expandAnim.animateTo(0.0, curve: Curves.easeIn);
-    if (_verticalDragAccum != 0) setState(() => _verticalDragAccum = 0);
+    // Project the raw drag delta onto the tangent (pixels along the arc).
+    final dR         = math.min(box.size.width * 0.44, box.size.height * 0.44);
+    final tangential = d.delta.dx * tangentX + d.delta.dy * tangentY;
+
+    // arc-pixels → angle delta → value delta
+    final angleDeltaDeg = tangential * 180 / (dR * math.pi);
+    final valueDelta    = (angleDeltaDeg / _kDialSpan) * range;
+
+    final nv     = (cur + valueDelta).clamp(minVal, maxVal);
+    final newPct = ((nv - minVal) / range).clamp(0.0, 1.0);
+    _maybeHaptic(newPct, nv == minVal || nv == maxVal);
+
+    ref.read(editStateProvider.notifier).updateBasicEditor(_active.setValue(s, nv));
   }
 
   void _resetActive() {
@@ -151,11 +158,11 @@ class _ModToneState extends ConsumerState<ModTone>
       editStateProvider.select((st) => st?.basicEditor ?? const BasicEditorSettings()),
     );
 
-    final val    = _active.getValue(settings);
-    final minVal = _active.minVal;
-    final maxVal = _active.maxVal;
-    final pct    = ((val - minVal) / (maxVal - minVal)).clamp(0.0, 1.0);
-    final zeroPct = ((0.0 - minVal) / (maxVal - minVal)).clamp(0.0, 1.0);
+    final val     = _active.getValue(settings);
+    final minVal  = _active.minVal;
+    final maxVal  = _active.maxVal;
+    final pct     = ((val - minVal) / (maxVal - minVal)).clamp(0.0, 1.0);
+    final zeroPct = ((0.0  - minVal) / (maxVal - minVal)).clamp(0.0, 1.0);
 
     final displayVal = _active == _ToneParam.temperature
         ? '${val.round()}K'
@@ -165,23 +172,19 @@ class _ModToneState extends ConsumerState<ModTone>
       children: [
         Expanded(
           child: GestureDetector(
+            key: _areaKey,
             onPanStart: _onPanStart,
-            onPanUpdate: (d) => _onPanUpdate(d, minVal, maxVal),
-            onPanEnd: _onPanEnd,
+            onPanUpdate: _onPanUpdate,
             onDoubleTap: _resetActive,
-            child: Center(
-              child: RepaintBoundary(
-                child: CustomPaint(
-                  painter: _DialPainter(
-                    pct: pct,
-                    zeroPct: zeroPct,
-                    paramLabel: _active.label,
-                    displayValue: displayVal,
-                    precisionFactor: _precisionFactor,
-                    dragExpand: _expandAnim.value,
-                  ),
-                  size: const Size(240, 200),
+            child: RepaintBoundary(
+              child: CustomPaint(
+                painter: _DialPainter(
+                  pct: pct,
+                  zeroPct: zeroPct,
+                  paramLabel: _active.label,
+                  displayValue: displayVal,
                 ),
+                child: const SizedBox.expand(),
               ),
             ),
           ),
@@ -191,7 +194,7 @@ class _ModToneState extends ConsumerState<ModTone>
           active: _active,
           onSelect: (p) => setState(() {
             _active = p;
-            _verticalDragAccum = 0;
+            _lastHapticPct = null;
           }),
         ),
         const SizedBox(height: 8),
@@ -206,32 +209,18 @@ class _DialPainter extends CustomPainter {
     required this.zeroPct,
     required this.paramLabel,
     required this.displayValue,
-    this.precisionFactor = 1.0,
-    this.dragExpand = 0.0,
   });
 
   final double pct;
   final double zeroPct;
   final String paramLabel;
   final String displayValue;
-  final double precisionFactor;
-  // 0.0 = idle, 1.0 = actively dragging — drives ring/tick/thumb expansion.
-  final double dragExpand;
-
-  static const double startDeg = -210;
-  static const double endDeg   =   30;
-  static const double span     = endDeg - startDeg;
-  static const double dcx      = 120;
-  static const double dcy      = 110;
-
-  double get _dR =>
-      92.0
-      + (1.0 - precisionFactor.clamp(0.0, 1.0)) * 10.0
-      + dragExpand * 16.0;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final dR = _dR;
+    final dcx = size.width  / 2;
+    final dcy = size.height * 0.55;
+    final dR  = math.min(size.width * 0.44, size.height * 0.44);
 
     Offset toXY(double deg, {double? r}) {
       final rad = deg * math.pi / 180;
@@ -239,34 +228,31 @@ class _DialPainter extends CustomPainter {
       return Offset(dcx + radius * math.cos(rad), dcy + radius * math.sin(rad));
     }
 
-    final angle    = startDeg + span * pct;
-    final zeroAngle = startDeg + span * zeroPct;
-    final pt       = toXY(angle);
+    final angle     = _kDialStartDeg + _kDialSpan * pct;
+    final zeroAngle = _kDialStartDeg + _kDialSpan * zeroPct;
+    final pt        = toXY(angle);
 
-    // Outer ring — glows brighter while dragging.
+    // Outer ring.
     canvas.drawCircle(
-      const Offset(dcx, dcy),
+      Offset(dcx, dcy),
       dR + 6,
       Paint()
-        ..color = kText.withValues(alpha: 0.22 + dragExpand * 0.55)
+        ..color = kText.withValues(alpha: 0.22)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 0.5 + dragExpand * 0.8,
+        ..strokeWidth = 0.5,
     );
 
-    // Ticks: count stays fixed during drag-expand so gaps grow with the ring.
-    // Vertical-precision mode (upward swipe) doubles the count for density.
-    final tickCount = 49 + ((1.0 - precisionFactor.clamp(0.0, 1.0)) * 48).round();
-    final majorPeriod = tickCount > 49 ? 16 : 12;
+    const tickCount   = 49;
+    const majorPeriod = 12;
     for (int i = 0; i < tickCount; i++) {
-      final tickDeg = startDeg + span * (i / (tickCount - 1));
+      final tickDeg = _kDialStartDeg + _kDialSpan * (i / (tickCount - 1));
       final isMajor = i % majorPeriod == 0;
-      final frac = i / (tickCount - 1);
-      final inArc = zeroPct <= pct
+      final frac    = i / (tickCount - 1);
+      final inArc   = zeroPct <= pct
           ? frac >= zeroPct && frac <= pct
           : frac <= zeroPct && frac >= pct;
-      // Ticks grow taller while dragging to emphasise the expanded ring.
-      final majorLen = 11.0 + dragExpand * 5.0;
-      final minorLen =  7.0 + dragExpand * 3.0;
+      final majorLen = dR * 0.12;
+      final minorLen = dR * 0.076;
       final r1 = dR - (isMajor ? majorLen : minorLen);
       canvas.drawLine(
         toXY(tickDeg, r: r1),
@@ -285,7 +271,7 @@ class _DialPainter extends CustomPainter {
     );
 
     // Active arc.
-    final arcRect = Rect.fromCircle(center: const Offset(dcx, dcy), radius: dR - 5);
+    final arcRect = Rect.fromCircle(center: Offset(dcx, dcy), radius: dR - 5);
     canvas.drawArc(
       arcRect,
       zeroAngle * math.pi / 180,
@@ -298,9 +284,9 @@ class _DialPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round,
     );
 
-    // Chromatic pointer — expands while dragging.
-    final thumbR  = 6.5 + dragExpand * 3.0;
-    final chromaR = thumbR - 0.5;
+    // Chromatic pointer.
+    const thumbR  = 6.5;
+    const chromaR = thumbR - 0.5;
     canvas.drawCircle(pt.translate(-1.5, 0), chromaR, Paint()..color = kRed.withValues(alpha: 0.55));
     canvas.drawCircle(pt.translate(1.5, 0),  chromaR, Paint()..color = kTeal.withValues(alpha: 0.55));
     canvas.drawCircle(pt, thumbR,       Paint()..color = kAmber);
@@ -309,7 +295,7 @@ class _DialPainter extends CustomPainter {
     // Param label.
     _text(canvas, paramLabel,
         monoStyle(size: 8, color: kMute, letterSpacing: 3),
-        const Offset(dcx, dcy - 14));
+        Offset(dcx, dcy - 14));
 
     // Value readout.
     final valuePainter = TextPainter(
@@ -323,14 +309,6 @@ class _DialPainter extends CustomPainter {
       textDirection: TextDirection.ltr,
     )..layout();
     valuePainter.paint(canvas, Offset(dcx - valuePainter.width / 2, dcy + 2));
-
-    // Precision badge — shown when swipe-up is active.
-    if (precisionFactor < 0.95) {
-      final mult = (1.0 / precisionFactor).round();
-      _text(canvas, '×$mult  FINE',
-          monoStyle(size: 7, color: kAmber, letterSpacing: 1.5),
-          Offset(dcx, dcy + 54));
-    }
   }
 
   void _text(Canvas canvas, String text, TextStyle style, Offset center) {
@@ -345,9 +323,7 @@ class _DialPainter extends CustomPainter {
   bool shouldRepaint(_DialPainter old) =>
       old.pct != pct ||
       old.paramLabel != paramLabel ||
-      old.displayValue != displayValue ||
-      old.precisionFactor != precisionFactor ||
-      old.dragExpand != dragExpand;
+      old.displayValue != displayValue;
 }
 
 class _ParamWheel extends StatelessWidget {

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui' as ui;
+import 'package:gal/gal.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -71,6 +72,14 @@ class ExportService {
 
     await File(outputPath).writeAsBytes(encoded);
     _log.d('ExportService: saved $outputPath');
+
+    // Also save to device gallery (visible in Photos / Gallery app).
+    try {
+      await Gal.putImage(outputPath, album: 'LUMEN');
+    } catch (e) {
+      _log.w('ExportService: gal save failed — $e');
+    }
+
     return outputPath;
   }
 }

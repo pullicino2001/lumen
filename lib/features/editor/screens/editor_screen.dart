@@ -11,6 +11,7 @@ import '../../../core/providers/edit_state_provider.dart';
 import '../../../core/providers/shader_provider.dart';
 import '../../../core/providers/preview_image_provider.dart';
 import '../../../core/providers/bloom_shader_provider.dart';
+import '../../../core/providers/gallery_provider.dart';
 import '../../../core/services/format_ingestion_service.dart';
 import '../../../core/services/lumen_look_service.dart';
 import '../../../core/services/effect_engine.dart';
@@ -45,7 +46,21 @@ extension _ModuleExt on _Module {
 }
 
 class EditorScreen extends ConsumerStatefulWidget {
-  const EditorScreen({super.key});
+  const EditorScreen({
+    super.key,
+    this.currentEntryId,
+    this.onEntryCreated,
+    this.onBackToGallery,
+  });
+
+  /// The gallery entry currently being edited. Null for a fresh import.
+  final String? currentEntryId;
+
+  /// Called after a new gallery entry is created on import.
+  final void Function(String entryId)? onEntryCreated;
+
+  /// Called when the user taps the back button to return to the gallery.
+  final VoidCallback? onBackToGallery;
 
   @override
   ConsumerState<EditorScreen> createState() => _EditorScreenState();
@@ -56,6 +71,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   bool _exporting = false;
   bool _fullscreen = false;
   _Module _activeModule = _Module.look;
+
+  String? get _entryId => widget.currentEntryId;
 
   @override
   void initState() {
@@ -81,6 +98,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       ref.read(editStateProvider.notifier).load(
             sourcePath, ingestion.workingPath, ingestion.proxyPath);
       unawaited(_generateLumenProxy(ingestion.proxyPath));
+      // Save to Lumen Gallery immediately so the photo is always present.
+      unawaited(_createGalleryEntry());
     } on FormatIngestionException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -102,6 +121,18 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       }
     } catch (_) {
       // Silent fallback — shader will use raw proxy instead.
+    }
+  }
+
+  Future<void> _createGalleryEntry() async {
+    final state = ref.read(editStateProvider);
+    if (state == null) return;
+    try {
+      final entry =
+          await ref.read(galleryProvider.notifier).addEntry(state);
+      widget.onEntryCreated?.call(entry.id);
+    } catch (_) {
+      // Non-fatal — editor still works without gallery persistence.
     }
   }
 
@@ -158,9 +189,20 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         format: format,
         jpegQuality: jpegQuality,
       );
+      // Persist this export as a named version in the Lumen Gallery.
+      if (_entryId != null) {
+        final currentState = ref.read(editStateProvider);
+        if (currentState != null) {
+          unawaited(ref.read(galleryProvider.notifier).addSnapshot(
+                _entryId!,
+                currentState,
+                exportedPath: outputPath,
+              ));
+        }
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Saved: $outputPath')),
+          const SnackBar(content: Text('Saved to gallery')),
         );
       }
     } catch (e) {
@@ -202,6 +244,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                   onExport: _exporting ? null : _showExportSheet,
                   exporting: _exporting,
                   onEnterFullscreen: () => setState(() => _fullscreen = true),
+                  onBack: widget.onBackToGallery,
                 ))
           : _ImportScreen(
               importing: _importing,
@@ -222,6 +265,7 @@ class _HybridEditor extends StatefulWidget {
     required this.onExport,
     required this.exporting,
     required this.onEnterFullscreen,
+    this.onBack,
   });
 
   final _Module activeModule;
@@ -229,6 +273,7 @@ class _HybridEditor extends StatefulWidget {
   final VoidCallback? onExport;
   final bool exporting;
   final VoidCallback onEnterFullscreen;
+  final VoidCallback? onBack;
 
   @override
   State<_HybridEditor> createState() => _HybridEditorState();
@@ -239,10 +284,10 @@ class _HybridEditorState extends State<_HybridEditor> {
   List<Rect>? _lastExclusionRects;
 
   // Fixed heights of the non-module chrome inside the sheet:
-  //   handle 20 + header ~80 + tab dock ~72 = 172
-  // Plus a minimum module content area (200) so the hero never collapses.
-  static const double _kSheetChrome = 172.0;
-  static const double _kMinModuleH  = 200.0;
+  //   handle 20 + header ~56 + tab dock ~60 = 136
+  // Plus a minimum module content area (160) so the hero never collapses.
+  static const double _kSheetChrome = 136.0;
+  static const double _kMinModuleH  = 160.0;
 
   // Exclude the left/right edges of the bottom panel from Android's back gesture.
   void _syncGestureExclusion(double sheetH, Size screenSize) {
@@ -255,7 +300,7 @@ class _HybridEditorState extends State<_HybridEditor> {
     ];
     if (_lastExclusionRects != null &&
         _lastExclusionRects![0] == rects[0] &&
-        _lastExclusionRects![1] == rects[1]) return;
+        _lastExclusionRects![1] == rects[1]) { return; }
     _lastExclusionRects = rects;
     SystemChannels.platform.invokeMethod<void>(
       'SystemChrome.setSystemGestureExclusionRects',
@@ -297,7 +342,7 @@ class _HybridEditorState extends State<_HybridEditor> {
 
     final min    = _kSheetChrome + _kMinModuleH + botPad;
     final max    = screenH - topPad - 160.0;
-    final sheetH = (_sheetH ?? screenH * 0.50).clamp(min, max);
+    final sheetH = (_sheetH ?? screenH * 0.36).clamp(min, max);
 
     WidgetsBinding.instance.addPostFrameCallback(
       (_) { if (mounted) _syncGestureExclusion(sheetH, mq.size); },
@@ -334,7 +379,7 @@ class _HybridEditorState extends State<_HybridEditor> {
         // Top nav.
         Positioned(
           top: topPad + 12, left: 0, right: 0,
-          child: _TopNav(exporting: widget.exporting, onExport: widget.onExport),
+          child: _TopNav(exporting: widget.exporting, onExport: widget.onExport, onBack: widget.onBack),
         ),
 
         // Floating micro-panels.
@@ -456,9 +501,14 @@ class _OriginalPreview extends ConsumerWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TopNav extends ConsumerWidget {
-  const _TopNav({required this.exporting, required this.onExport});
+  const _TopNav({
+    required this.exporting,
+    required this.onExport,
+    this.onBack,
+  });
   final bool exporting;
   final VoidCallback? onExport;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -467,8 +517,8 @@ class _TopNav extends ConsumerWidget {
       child: Row(
         children: [
           _NavBtn(
+            onTap: onBack,
             child: const Icon(Icons.chevron_left, size: 20, color: kText),
-            onTap: () {},
           ),
           const Spacer(),
           Column(
@@ -808,22 +858,22 @@ class _EditorSheet extends ConsumerWidget {
 
           // Sheet header.
           Padding(
-            padding: const EdgeInsets.fromLTRB(22, 14, 22, 0),
+            padding: const EdgeInsets.fromLTRB(22, 8, 22, 0),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Module',
-                        style: monoStyle(size: 9, letterSpacing: 2.5)),
-                    const SizedBox(height: 2),
+                        style: monoStyle(size: 8, letterSpacing: 2.5)),
+                    const SizedBox(height: 1),
                     Text(
                       moduleName,
                       style: const TextStyle(
                         fontFamily: 'Georgia',
                         fontStyle: FontStyle.italic,
-                        fontSize: 26,
+                        fontSize: 20,
                         color: kText,
                         letterSpacing: 0.2,
                       ),
@@ -835,14 +885,14 @@ class _EditorSheet extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(moduleMeta.$1,
-                        style: monoStyle(size: 9, letterSpacing: 2.5)),
-                    const SizedBox(height: 2),
+                        style: monoStyle(size: 8, letterSpacing: 2.5)),
+                    const SizedBox(height: 1),
                     Text(
                       moduleMeta.$2,
                       style: const TextStyle(
                         fontFamily: 'Georgia',
                         fontStyle: FontStyle.italic,
-                        fontSize: 22,
+                        fontSize: 17,
                         color: kAmber,
                         letterSpacing: 0,
                       ),
@@ -870,7 +920,7 @@ class _EditorSheet extends ConsumerWidget {
             decoration: BoxDecoration(
               border: Border(top: BorderSide(color: kHair, width: 0.5)),
             ),
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 7),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: _Module.values.map((m) {

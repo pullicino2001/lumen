@@ -36,6 +36,7 @@ uniform vec4  uHueShifts;
 uniform float uGrainIntensity;
 uniform float uGrainSize;
 uniform float uGrainType;
+uniform float uGrainSeed;      // per-render random offset — never a static pattern
 
 // ── Lens ────────────────────────────────────────────────────────────────────
 uniform float uVignetteIntensity;
@@ -51,8 +52,32 @@ out vec4 fragColor;
 
 float luminance(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
 
-float hash(vec2 p) {
-  return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+// Improved hash — avoids sin-based banding on some mobile GPUs
+float hash2(vec2 p) {
+  p = fract(p * vec2(0.1031, 0.1030));
+  p += dot(p, p.yx + 33.33);
+  return fract((p.x + p.y) * p.x);
+}
+
+// Smooth value noise — bilinear interpolation between cell corners gives
+// soft, organic edges instead of hard pixel blocks
+float valueNoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);          // smoothstep curve
+  return mix(
+    mix(hash2(i),             hash2(i + vec2(1,0)), u.x),
+    mix(hash2(i + vec2(0,1)), hash2(i + vec2(1,1)), u.x),
+    u.y
+  );
+}
+
+// Box-Muller: two uniform samples → one Gaussian sample (σ≈1)
+// Gives the rare bright/dark spikes that real silver-halide grains produce
+float gaussianNoise(vec2 p) {
+  float u1 = clamp(valueNoise(p),              0.001, 0.999);
+  float u2 =       valueNoise(p + vec2(13.7, 5.3));
+  return sqrt(-2.0 * log(u1)) * cos(6.28318 * u2);
 }
 
 vec3 rgb2hsl(vec3 c) {
@@ -192,17 +217,33 @@ void main() {
     c = mix(pre, c, uStockIntensity);
   }
 
-  // ── Grain (shadow-weighted, stage 10 approximation) ──────────────────
+  // ── Grain ────────────────────────────────────────────────────────────────
   if (uGrainIntensity > 0.0) {
-    float sw = 1.0 - luminance(c) * 0.8;
-    vec2  gc = floor(FlutterFragCoord().xy / uGrainSize);
-    float base = (hash(gc)                    * 2.0 - 1.0) * uGrainIntensity * sw;
+    float luma = luminance(c);
+    // Tapers smoothly to near-zero in bright highlights — real grain lives in shadows
+    float sw = 1.0 - smoothstep(0.15, 0.95, luma);
+
+    // Per-render seed shifts the sample space so grain is never a static burn-in
+    vec2 seedOff = vec2(uGrainSeed * 127.1, uGrainSeed * 311.7);
+    vec2 p = FlutterFragCoord().xy / uGrainSize + seedOff;
+
+    // Two octaves: large structure + fine detail within each grain cluster
+    float g1 = gaussianNoise(p);
+    float g2 = gaussianNoise(p * 2.3 + vec2(5.4, 1.1));
+    // Clamp to ±3σ then normalize to [-1, 1] — preserves the occasional spike
+    float g  = clamp(g1 * 0.7 + g2 * 0.3, -3.0, 3.0) / 3.0;
+
+    float grainVal = g * uGrainIntensity * sw;
+
     if (uGrainType < 0.5) {
-      c += vec3(base);
+      c += vec3(grainVal);
     } else {
-      float gr = (hash(gc + vec2(17.3,  1.7)) * 2.0 - 1.0) * uGrainIntensity * sw;
-      float gb = (hash(gc + vec2(51.3,  7.9)) * 2.0 - 1.0) * uGrainIntensity * sw;
-      c += vec3(gr, base, gb);
+      // Independent Gaussian per channel for colour grain
+      vec2 pr = p + vec2(17.3,  1.7);
+      vec2 pb = p + vec2(51.3,  7.9);
+      float gr = clamp(gaussianNoise(pr) * 0.7 + gaussianNoise(pr * 2.3) * 0.3, -3.0, 3.0) / 3.0;
+      float gb = clamp(gaussianNoise(pb) * 0.7 + gaussianNoise(pb * 2.3) * 0.3, -3.0, 3.0) / 3.0;
+      c += vec3(gr * uGrainIntensity * sw, grainVal, gb * uGrainIntensity * sw);
     }
   }
 

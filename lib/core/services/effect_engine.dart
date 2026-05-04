@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import '../models/edit_state.dart';
 import '../models/basic_editor_settings.dart';
@@ -23,7 +24,8 @@ class EffectEngine {
     final canvas = ui.Canvas(recorder, ui.Rect.fromLTWH(0, 0, w, h));
 
     final shader = program.fragmentShader();
-    _bindUniforms(shader, state, ui.Size(w, h), sourceImage);
+    final grainSeed = math.Random().nextDouble();
+    _bindUniforms(shader, state, ui.Size(w, h), sourceImage, grainSeed);
     canvas.drawRect(
       ui.Rect.fromLTWH(0, 0, w, h),
       ui.Paint()..shader = shader,
@@ -54,6 +56,7 @@ class EffectEngine {
     EditState state,
     ui.Size size,
     ui.Image sourceImage,
+    double grainSeed,
   ) {
     final be = state.basicEditorEnabled
         ? state.basicEditor
@@ -99,11 +102,12 @@ class EffectEngine {
     shader.setFloat(41, gr.intensity / 100.0);
     shader.setFloat(42, _grainSizeVal(gr.size));
     shader.setFloat(43, gr.type == GrainType.luminance ? 0.0 : 1.0);
+    shader.setFloat(44, grainSeed);
     // Lens
-    shader.setFloat(44, lens?.vignetteIntensity  ?? 0.0);
-    shader.setFloat(45, lens?.vignetteShape       ?? 0.0);
-    shader.setFloat(46, lens?.chromaticAberration ?? 0.0);
-    shader.setFloat(47, lens?.distortion          ?? 0.0);
+    shader.setFloat(45, lens?.vignetteIntensity  ?? 0.0);
+    shader.setFloat(46, lens?.vignetteShape       ?? 0.0);
+    shader.setFloat(47, lens?.chromaticAberration ?? 0.0);
+    shader.setFloat(48, lens?.distortion          ?? 0.0);
     // Sampler
     shader.setImageSampler(0, sourceImage);
   }

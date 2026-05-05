@@ -14,6 +14,7 @@ final previewImageProvider = FutureProvider<ui.Image?>((ref) async {
   final bytes = await File(path).readAsBytes();
   final codec = await ui.instantiateImageCodec(bytes);
   final frame = await codec.getNextFrame();
+  codec.dispose();
   return frame.image;
 });
 
@@ -30,5 +31,6 @@ final shaderSourceProvider = FutureProvider<ui.Image?>((ref) async {
   final bytes = await File(path).readAsBytes();
   final codec = await ui.instantiateImageCodec(bytes);
   final frame = await codec.getNextFrame();
+  codec.dispose();
   return frame.image;
 });

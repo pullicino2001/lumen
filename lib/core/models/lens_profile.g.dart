@@ -20,6 +20,8 @@ _$LensProfileImpl _$$LensProfileImplFromJson(Map<String, dynamic> json) =>
           (json['chromaticAberration'] as num?)?.toDouble() ?? 0.0,
       cornerSoftness: (json['cornerSoftness'] as num?)?.toDouble() ?? 0.0,
       distortion: (json['distortion'] as num?)?.toDouble() ?? 0.0,
+      vignetteOffsetX: (json['vignetteOffsetX'] as num?)?.toDouble() ?? 0.5,
+      vignetteOffsetY: (json['vignetteOffsetY'] as num?)?.toDouble() ?? 0.5,
       bokeh: json['bokeh'] as Map<String, dynamic>? ?? null,
     );
 
@@ -34,6 +36,8 @@ Map<String, dynamic> _$$LensProfileImplToJson(_$LensProfileImpl instance) =>
       'chromaticAberration': instance.chromaticAberration,
       'cornerSoftness': instance.cornerSoftness,
       'distortion': instance.distortion,
+      'vignetteOffsetX': instance.vignetteOffsetX,
+      'vignetteOffsetY': instance.vignetteOffsetY,
       'bokeh': instance.bokeh,
     };
 

@@ -110,6 +110,30 @@ class GalleryService {
     return updated;
   }
 
+  /// Updates only the current edit state of an entry — no history snapshot created.
+  /// Called automatically as the user edits so changes are always persisted.
+  Future<GalleryEntry> updateCurrentState(
+    String entryId,
+    EditState state,
+  ) async {
+    final all = await loadAll();
+    final idx = all.indexWhere((e) => e.id == entryId);
+    if (idx < 0) throw StateError('Gallery entry $entryId not found');
+
+    final entry = all[idx];
+    final patched = state.copyWith(
+      originalFilePath: entry.sourcePath,
+      workingFilePath: entry.sourcePath,
+      proxyFilePath: entry.thumbPath,
+      lumenProxyPath: null,
+    );
+
+    final updated = entry.copyWith(currentEditStateJson: patched.toJson());
+    all[idx] = updated;
+    await _persist(all);
+    return updated;
+  }
+
   /// Reconstructs an [EditState] from a gallery entry, optionally restoring a
   /// specific historical [snapshot]. Paths are always patched to permanent storage.
   EditState buildEditState(GalleryEntry entry, [EditSnapshot? snapshot]) {

@@ -43,6 +43,7 @@ uniform float uVignetteIntensity;
 uniform float uVignetteShape;
 uniform float uChromaticAberration;
 uniform float uDistortion;
+uniform vec2  uVignetteCenter; // (0,0)=top-left, (1,1)=bottom-right, default (0.5,0.5)
 
 uniform sampler2D uTexture;
 
@@ -249,8 +250,9 @@ void main() {
 
   // ── Vignette ─────────────────────────────────────────────────────────
   if (uVignetteIntensity > 0.0) {
-    float circ = length(uv - 0.5) * 2.0;
-    float rect = max(abs(uv.x - 0.5), abs(uv.y - 0.5)) * 2.828;
+    vec2  d    = uv - uVignetteCenter;
+    float circ = length(d) * 2.0;
+    float rect = max(abs(d.x), abs(d.y)) * 2.828;
     float dist = mix(circ, rect, uVignetteShape);
     c *= clamp(1.0 - uVignetteIntensity * smoothstep(0.3, 1.2, dist), 0.0, 1.0);
   }

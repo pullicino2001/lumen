@@ -251,7 +251,7 @@ class _ExportSheetState extends State<ExportSheet> {
                           ),
                         )
                       : Text(
-                          'SAVE TO LUMEN',
+                          'EXPORT TO DEVICE',
                           style: monoStyle(
                             size: 11,
                             color: const Color(0xFF1A0F06),

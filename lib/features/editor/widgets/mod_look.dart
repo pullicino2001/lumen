@@ -26,17 +26,18 @@ class ModLook extends ConsumerWidget {
       ref.read(editStateProvider.notifier).setStock(stock);
     }
 
-    return Column(
-      children: [
-        const _LumenLookToggle(),
-        _FilmstripPicker(
-          stocks: stocks,
-          selectedIndex: selIndex,
-          onSelect: selectStock,
-        ),
-        const SizedBox(height: 14),
-        Expanded(
-          child: Padding(
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        children: [
+          const _LumenLookToggle(),
+          _FilmstripPicker(
+            stocks: stocks,
+            selectedIndex: selIndex,
+            onSelect: selectStock,
+          ),
+          const SizedBox(height: 14),
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
@@ -61,8 +62,9 @@ class ModLook extends ConsumerWidget {
               ],
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 }
@@ -159,12 +161,12 @@ class _FilmstripPicker extends StatelessWidget {
             children: [
               _SprocketRow(),
               SizedBox(
-                height: 80,
+                height: 130,
                 child: ListView.separated(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   itemCount: stocks.length,
-                  separatorBuilder: (_, x) => const SizedBox(width: 4),
+                  separatorBuilder: (_, x) => const SizedBox(width: 5),
                   itemBuilder: (context, i) {
                     final stock = stocks[i];
                     final active = i == selectedIndex;
@@ -245,17 +247,19 @@ class _FilmFrame extends StatelessWidget {
             colors: _colorsForStock(stock!.id),
           );
 
+    final shortName = stock == null ? 'NONE' : _shortName(stock!.name);
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        width: 52,
+        width: 80,
         decoration: BoxDecoration(
           border: Border.all(
             color: active ? kAmber : Colors.white.withValues(alpha: 0.08),
             width: active ? 1.5 : 0.5,
           ),
-          borderRadius: BorderRadius.circular(1),
+          borderRadius: BorderRadius.circular(2),
           boxShadow: active ? [BoxShadow(color: kAmber.withValues(alpha: 0.55), blurRadius: 16)] : null,
         ),
         child: Stack(
@@ -265,7 +269,7 @@ class _FilmFrame extends StatelessWidget {
                 decoration: BoxDecoration(gradient: gradient),
               ),
             ),
-            if (active) ...[
+            if (active)
               Positioned.fill(
                 child: DecoratedBox(
                   decoration: BoxDecoration(
@@ -274,23 +278,45 @@ class _FilmFrame extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
+            // Frame number
             Positioned(
-              top: 3,
-              left: 4,
+              top: 5,
+              left: 6,
               child: Text(
                 index.toString().padLeft(2, '0'),
                 style: monoStyle(
-                  size: 6,
+                  size: 7,
                   color: active ? kAmber : Colors.white.withValues(alpha: 0.4),
                   letterSpacing: 0.5,
                 ),
+              ),
+            ),
+            // Stock name at bottom
+            Positioned(
+              bottom: 6,
+              left: 6,
+              right: 6,
+              child: Text(
+                shortName,
+                style: monoStyle(
+                  size: 7,
+                  color: active ? kAmber : Colors.white.withValues(alpha: 0.55),
+                  letterSpacing: 0.8,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _shortName(String name) {
+    final parts = name.split(' ');
+    if (parts.length == 1) return name.toUpperCase();
+    return '${parts[0].toUpperCase()}\n${parts.sublist(1).join(' ').toUpperCase()}';
   }
 
   List<Color> _colorsForStock(String id) => switch (id) {
@@ -314,72 +340,52 @@ class _FilmstockCard extends StatelessWidget {
     final name = stock?.name ?? 'None';
     final code = _codeForStock(stock?.id);
     final iso = _isoForStock(stock?.id);
-    final desc = stock?.description ?? 'Camera-original tones, no processing.';
     final barColors = _barForStock(stock?.id);
 
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFF0D0A07),
-        border: Border.all(color: kAmber, width: 1),
+        border: Border.all(color: kAmber.withValues(alpha: 0.6), width: 0.5),
         borderRadius: BorderRadius.circular(4),
-        boxShadow: [BoxShadow(color: kAmber.withValues(alpha: 0.25), blurRadius: 28)],
+        boxShadow: [BoxShadow(color: kAmber.withValues(alpha: 0.12), blurRadius: 14)],
       ),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('LUMEN · $code',
+                    style: monoStyle(size: 7, color: kAmber, letterSpacing: 2)),
+                const SizedBox(height: 3),
+                Text(name,
+                    style: displayStyle(size: 18, letterSpacing: -0.2, color: kText)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('LUMEN · $code',
-                        style: monoStyle(size: 8, color: kAmber, letterSpacing: 2.5)),
-                    const SizedBox(height: 6),
-                    Text(name,
-                        style: displayStyle(size: 32, letterSpacing: -0.3, color: kText)),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text('ISO · DIN',
-                      style: monoStyle(size: 7, letterSpacing: 1.5)),
-                  const SizedBox(height: 4),
-                  Text(iso,
-                      style: monoStyle(size: 20, color: kText, letterSpacing: 1)),
-                ],
-              ),
+              Text('ISO', style: monoStyle(size: 7, letterSpacing: 1.5)),
+              const SizedBox(height: 2),
+              Text(iso, style: monoStyle(size: 14, color: kText, letterSpacing: 1)),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(desc,
-              style: sansStyle(size: 11, color: kMute),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis),
-          const SizedBox(height: 12),
+          const SizedBox(width: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(1),
             child: SizedBox(
-              height: 12,
-              child: Row(
+              width: 8,
+              height: 36,
+              child: Column(
                 children: barColors
                     .map((c) => Expanded(child: ColoredBox(color: c)))
                     .toList(),
               ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Frame ${frameIndex.toString().padLeft(2, '0')} · Selected',
-                  style: monoStyle(size: 8, letterSpacing: 2)),
-              Text('γ 2.2', style: monoStyle(size: 8, letterSpacing: 2)),
-            ],
           ),
         ],
       ),

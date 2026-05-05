@@ -80,9 +80,16 @@ class ModTone extends ConsumerStatefulWidget {
 }
 
 class _ModToneState extends ConsumerState<ModTone> {
-  _ToneParam _active      = _ToneParam.highlights;
-  final      _areaKey     = GlobalKey();
-  double?    _lastHapticPct;   // tracks which tick last fired a click
+  _ToneParam _active           = _ToneParam.highlights;
+  final      _areaKey          = GlobalKey();
+  final      _wheelController  = ScrollController();
+  double?    _lastHapticPct;
+
+  @override
+  void dispose() {
+    _wheelController.dispose();
+    super.dispose();
+  }
 
   // Fire a selection click each time the thumb crosses a tick mark (1 per graduation).
   // Fire a medium impact when the value hits a hard limit.
@@ -152,6 +159,44 @@ class _ModToneState extends ConsumerState<ModTone> {
         .updateBasicEditor(_active.setValue(s, _active.defaultVal));
   }
 
+  // A pan that ends with dominant horizontal velocity is a swipe — cycle param.
+  // A slow dial drag ends with near-zero velocity so it never triggers this.
+  void _onPanEnd(DragEndDetails d) {
+    final vx = d.velocity.pixelsPerSecond.dx;
+    final vy = d.velocity.pixelsPerSecond.dy;
+    if (vx.abs() > 400 && vx.abs() > vy.abs() * 1.5) {
+      _cycleParam(vx < 0 ? 1 : -1);
+    }
+  }
+
+  void _cycleParam(int delta) {
+    final params = _ToneParam.values;
+    final newIdx = (params.indexOf(_active) + delta) % params.length;
+    final safeIdx = newIdx < 0 ? params.length + newIdx : newIdx;
+    HapticFeedback.selectionClick();
+    setState(() {
+      _active = params[safeIdx];
+      _lastHapticPct = null;
+    });
+    _scrollWheelTo(safeIdx);
+  }
+
+  // Approximate each pill width to keep the active item centred in the wheel.
+  // Items use horizontal padding 10+10 = 20, font size 11 with letterSpacing 1.6.
+  // Average label is ~4 chars ≈ 4 * 8.5 = 34px text → ~54px per item.
+  static const double _kItemW = 54.0;
+
+  void _scrollWheelTo(int idx) {
+    if (!_wheelController.hasClients) return;
+    final viewW    = _wheelController.position.viewportDimension;
+    final target   = 48.0 + idx * _kItemW - (viewW - _kItemW) / 2;
+    _wheelController.animateTo(
+      target.clamp(0.0, _wheelController.position.maxScrollExtent),
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(
@@ -175,6 +220,7 @@ class _ModToneState extends ConsumerState<ModTone> {
             key: _areaKey,
             onPanStart: _onPanStart,
             onPanUpdate: _onPanUpdate,
+            onPanEnd: _onPanEnd,
             onDoubleTap: _resetActive,
             child: RepaintBoundary(
               child: CustomPaint(
@@ -192,10 +238,16 @@ class _ModToneState extends ConsumerState<ModTone> {
         _ParamWheel(
           params: _ToneParam.values,
           active: _active,
-          onSelect: (p) => setState(() {
-            _active = p;
-            _lastHapticPct = null;
-          }),
+          controller: _wheelController,
+          onSelect: (p) {
+            HapticFeedback.selectionClick();
+            final idx = _ToneParam.values.indexOf(p);
+            setState(() {
+              _active = p;
+              _lastHapticPct = null;
+            });
+            _scrollWheelTo(idx);
+          },
         ),
         const SizedBox(height: 8),
       ],
@@ -330,11 +382,13 @@ class _ParamWheel extends StatelessWidget {
   const _ParamWheel({
     required this.params,
     required this.active,
+    required this.controller,
     required this.onSelect,
   });
 
   final List<_ToneParam> params;
   final _ToneParam active;
+  final ScrollController controller;
   final ValueChanged<_ToneParam> onSelect;
 
   @override
@@ -349,6 +403,7 @@ class _ParamWheel extends StatelessWidget {
       child: SizedBox(
         height: 36,
         child: ListView.builder(
+          controller: controller,
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 48),
           itemCount: params.length,

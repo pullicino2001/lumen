@@ -2,7 +2,7 @@ name: lumen
 description: "A darkroom for every camera"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+4
 
 environment:
   sdk: ^3.11.4
@@ -37,6 +37,12 @@ dependencies:
   # Save exported images to the device gallery (Android MediaStore / iOS Photos)
   gal: ^1.1.0
 
+  # HTTP client — used by AtlasCloudService for simulation API calls
+  http: ^1.2.0
+
+  # .env file loader — reads ATLAS_API_KEY at runtime
+  flutter_dotenv: ^5.2.1
+
   # Google Fonts — Cormorant Garamond, Inter Tight, JetBrains Mono
   google_fonts: ^6.2.1
 
@@ -63,6 +69,7 @@ flutter:
     - assets/baseline/
     - assets/lens_profiles/
     - assets/config/
+    - .env
 
   shaders:
     - assets/shaders/basic_editor.frag

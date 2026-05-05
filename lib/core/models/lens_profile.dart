@@ -46,6 +46,12 @@ abstract class LensProfile with _$LensProfile implements PromptContributor {
     /// Barrel (positive) or pincushion (negative) distortion.
     @Default(0.0) double distortion,
 
+    /// Vignette center X (0–1, default 0.5 = image centre).
+    @Default(0.5) double vignetteOffsetX,
+
+    /// Vignette center Y (0–1, default 0.5 = image centre).
+    @Default(0.5) double vignetteOffsetY,
+
     // — Reserved for v3 —
 
     /// Bokeh simulation parameters. Null until v3 depth-map work.

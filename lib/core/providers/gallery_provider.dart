@@ -35,6 +35,11 @@ class GalleryNotifier extends StateNotifier<List<GalleryEntry>> {
     state = state.map((e) => e.id == entryId ? updated : e).toList();
     return updated;
   }
+
+  /// Updates an entry in memory (e.g. after an auto-save from the editor).
+  void updateEntry(GalleryEntry entry) {
+    state = state.map((e) => e.id == entry.id ? entry : e).toList();
+  }
 }
 
 final galleryProvider =

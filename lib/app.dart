@@ -50,7 +50,9 @@ class _HomeShellState extends ConsumerState<_HomeShell> {
     // Restore the entry's edit state then switch to editor.
     final service = ref.read(galleryServiceProvider);
     final editState = service.buildEditState(entry);
-    ref.read(editStateProvider.notifier).restore(editState);
+    final notifier = ref.read(editStateProvider.notifier);
+    notifier.restore(editState);
+    notifier.setEntryId(entry.id);
     setState(() {
       _currentEntryId = entry.id;
       _tab = 1;

@@ -24,24 +24,38 @@ import '../widgets/mod_tone.dart';
 import '../widgets/mod_grain.dart';
 import '../widgets/mod_bloom.dart';
 import '../widgets/mod_lens.dart';
+import '../widgets/mod_simulation.dart';
 
-enum _Module { look, tone, grain, bloom, lens }
+enum _Module { look, tone, grain, bloom, lens, simulate }
 
 extension _ModuleExt on _Module {
+  // Short label shown in the tab dock (keep ≤5 chars to avoid overflow).
   String get label => switch (this) {
-    _Module.look  => 'Look',
-    _Module.tone  => 'Tone',
-    _Module.grain => 'Grain',
-    _Module.bloom => 'Bloom',
-    _Module.lens  => 'Lens',
+    _Module.look     => 'Look',
+    _Module.tone     => 'Tone',
+    _Module.grain    => 'Grain',
+    _Module.bloom    => 'Bloom',
+    _Module.lens     => 'Lens',
+    _Module.simulate => 'Sim',
+  };
+
+  // Full name used in the sheet header.
+  String get fullLabel => switch (this) {
+    _Module.look     => 'Look',
+    _Module.tone     => 'Tone',
+    _Module.grain    => 'Grain',
+    _Module.bloom    => 'Bloom',
+    _Module.lens     => 'Lens',
+    _Module.simulate => 'Simulation',
   };
 
   IconData get icon => switch (this) {
-    _Module.look  => Icons.movie_filter_outlined,
-    _Module.tone  => Icons.tune_outlined,
-    _Module.grain => Icons.grain,
-    _Module.bloom => Icons.flare_outlined,
-    _Module.lens  => Icons.lens_outlined,
+    _Module.look     => Icons.movie_filter_outlined,
+    _Module.tone     => Icons.tune_outlined,
+    _Module.grain    => Icons.grain,
+    _Module.bloom    => Icons.flare_outlined,
+    _Module.lens     => Icons.lens_outlined,
+    _Module.simulate => Icons.auto_awesome_outlined,
   };
 }
 
@@ -71,8 +85,6 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   bool _exporting = false;
   bool _fullscreen = false;
   _Module _activeModule = _Module.look;
-
-  String? get _entryId => widget.currentEntryId;
 
   @override
   void initState() {
@@ -128,8 +140,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final state = ref.read(editStateProvider);
     if (state == null) return;
     try {
-      final entry =
-          await ref.read(galleryProvider.notifier).addEntry(state);
+      final entry = await ref.read(galleryProvider.notifier).addEntry(state);
+      ref.read(editStateProvider.notifier).setEntryId(entry.id);
       widget.onEntryCreated?.call(entry.id);
     } catch (_) {
       // Non-fatal — editor still works without gallery persistence.
@@ -176,6 +188,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
       final bytes = await File(sourcePath).readAsBytes();
       final codec = await ui.instantiateImageCodec(bytes);
       final frame = await codec.getNextFrame();
+      codec.dispose();
       final sourceImage = frame.image;
       final processed = await EffectEngine().apply(
         state:         state,
@@ -183,26 +196,15 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         program:       program,
         bloomPrograms: bloomPrograms,
       );
-      final outputPath = await ExportService().export(
+      await ExportService().export(
         processed,
         state,
         format: format,
         jpegQuality: jpegQuality,
       );
-      // Persist this export as a named version in the Lumen Gallery.
-      if (_entryId != null) {
-        final currentState = ref.read(editStateProvider);
-        if (currentState != null) {
-          unawaited(ref.read(galleryProvider.notifier).addSnapshot(
-                _entryId!,
-                currentState,
-                exportedPath: outputPath,
-              ));
-        }
-      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Saved to gallery')),
+          const SnackBar(content: Text('Exported to LUMEN album')),
         );
       }
     } catch (e) {
@@ -512,6 +514,8 @@ class _TopNav extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final undoState = ref.watch(undoAvailabilityProvider);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       child: Row(
@@ -539,6 +543,22 @@ class _TopNav extends ConsumerWidget {
             ],
           ),
           const Spacer(),
+          _NavBtn(
+            onTap: undoState.canUndo
+                ? () => ref.read(editStateProvider.notifier).undo()
+                : null,
+            child: Icon(Icons.undo,
+                size: 18, color: undoState.canUndo ? kText : kMute),
+          ),
+          const SizedBox(width: 6),
+          _NavBtn(
+            onTap: undoState.canRedo
+                ? () => ref.read(editStateProvider.notifier).redo()
+                : null,
+            child: Icon(Icons.redo,
+                size: 18, color: undoState.canRedo ? kText : kMute),
+          ),
+          const SizedBox(width: 6),
           _NavBtn(
             color: kAmber,
             shadow: true,
@@ -819,7 +839,7 @@ class _EditorSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final editState = ref.watch(editStateProvider);
-    final moduleName = activeModule.label;
+    final moduleName = activeModule.fullLabel;
     final moduleMeta = _metaFor(activeModule, editState);
 
     return Container(
@@ -903,15 +923,19 @@ class _EditorSheet extends ConsumerWidget {
             ),
           ),
 
-          // Module hero area.
+          // Module hero area — ClipRect prevents any overflow from bleeding
+          // into the tab dock below when the sheet is at minimum height.
           Expanded(
-            child: switch (activeModule) {
-              _Module.look  => const ModLook(),
-              _Module.tone  => const ModTone(),
-              _Module.grain => const ModGrain(),
-              _Module.bloom => const ModBloom(),
-              _Module.lens  => const ModLens(),
-            },
+            child: ClipRect(
+              child: switch (activeModule) {
+                _Module.look     => const ModLook(),
+                _Module.tone     => const ModTone(),
+                _Module.grain    => const ModGrain(),
+                _Module.bloom    => const ModBloom(),
+                _Module.lens     => const ModLens(),
+                _Module.simulate => const ModSimulation(),
+              },
+            ),
           ),
 
           // Module tab dock.
@@ -963,16 +987,18 @@ class _EditorSheet extends ConsumerWidget {
   }
 
   (String, String) _metaFor(_Module m, dynamic state) => switch (m) {
-    _Module.look  =>
+    _Module.look     =>
         ('Film Look', state?.filmStock?.name?.split(' ').first ?? 'None'),
-    _Module.tone  =>
+    _Module.tone     =>
         ('Highlights', state?.basicEditor?.highlights.toStringAsFixed(0) ?? '0'),
-    _Module.grain =>
+    _Module.grain    =>
         ('Intensity', state?.grain?.intensity.toStringAsFixed(0) ?? '0'),
-    _Module.bloom =>
+    _Module.bloom    =>
         ('Bloom', state?.bloom?.bloomIntensity.toStringAsFixed(0) ?? '0'),
-    _Module.lens  =>
+    _Module.lens     =>
         ('Profile', state?.lensProfile?.name?.split(' ').last ?? '—'),
+    _Module.simulate =>
+        ('AI Model', 'Flux'),
   };
 }
 

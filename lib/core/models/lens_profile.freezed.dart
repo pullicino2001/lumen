@@ -46,7 +46,13 @@ mixin _$LensProfile {
   double get cornerSoftness => throw _privateConstructorUsedError;
 
   /// Barrel (positive) or pincushion (negative) distortion.
-  double get distortion =>
+  double get distortion => throw _privateConstructorUsedError;
+
+  /// Vignette center X (0–1, default 0.5 = image centre).
+  double get vignetteOffsetX => throw _privateConstructorUsedError;
+
+  /// Vignette center Y (0–1, default 0.5 = image centre).
+  double get vignetteOffsetY =>
       throw _privateConstructorUsedError; // — Reserved for v3 —
   /// Bokeh simulation parameters. Null until v3 depth-map work.
   Map<String, dynamic>? get bokeh => throw _privateConstructorUsedError;
@@ -78,6 +84,8 @@ abstract class $LensProfileCopyWith<$Res> {
     double chromaticAberration,
     double cornerSoftness,
     double distortion,
+    double vignetteOffsetX,
+    double vignetteOffsetY,
     Map<String, dynamic>? bokeh,
   });
 }
@@ -106,6 +114,8 @@ class _$LensProfileCopyWithImpl<$Res, $Val extends LensProfile>
     Object? chromaticAberration = null,
     Object? cornerSoftness = null,
     Object? distortion = null,
+    Object? vignetteOffsetX = null,
+    Object? vignetteOffsetY = null,
     Object? bokeh = freezed,
   }) {
     return _then(
@@ -146,6 +156,14 @@ class _$LensProfileCopyWithImpl<$Res, $Val extends LensProfile>
                 ? _value.distortion
                 : distortion // ignore: cast_nullable_to_non_nullable
                       as double,
+            vignetteOffsetX: null == vignetteOffsetX
+                ? _value.vignetteOffsetX
+                : vignetteOffsetX // ignore: cast_nullable_to_non_nullable
+                      as double,
+            vignetteOffsetY: null == vignetteOffsetY
+                ? _value.vignetteOffsetY
+                : vignetteOffsetY // ignore: cast_nullable_to_non_nullable
+                      as double,
             bokeh: freezed == bokeh
                 ? _value.bokeh
                 : bokeh // ignore: cast_nullable_to_non_nullable
@@ -175,6 +193,8 @@ abstract class _$$LensProfileImplCopyWith<$Res>
     double chromaticAberration,
     double cornerSoftness,
     double distortion,
+    double vignetteOffsetX,
+    double vignetteOffsetY,
     Map<String, dynamic>? bokeh,
   });
 }
@@ -202,6 +222,8 @@ class __$$LensProfileImplCopyWithImpl<$Res>
     Object? chromaticAberration = null,
     Object? cornerSoftness = null,
     Object? distortion = null,
+    Object? vignetteOffsetX = null,
+    Object? vignetteOffsetY = null,
     Object? bokeh = freezed,
   }) {
     return _then(
@@ -242,6 +264,14 @@ class __$$LensProfileImplCopyWithImpl<$Res>
             ? _value.distortion
             : distortion // ignore: cast_nullable_to_non_nullable
                   as double,
+        vignetteOffsetX: null == vignetteOffsetX
+            ? _value.vignetteOffsetX
+            : vignetteOffsetX // ignore: cast_nullable_to_non_nullable
+                  as double,
+        vignetteOffsetY: null == vignetteOffsetY
+            ? _value.vignetteOffsetY
+            : vignetteOffsetY // ignore: cast_nullable_to_non_nullable
+                  as double,
         bokeh: freezed == bokeh
             ? _value._bokeh
             : bokeh // ignore: cast_nullable_to_non_nullable
@@ -264,6 +294,8 @@ class _$LensProfileImpl extends _LensProfile {
     this.chromaticAberration = 0.0,
     this.cornerSoftness = 0.0,
     this.distortion = 0.0,
+    this.vignetteOffsetX = 0.5,
+    this.vignetteOffsetY = 0.5,
     final Map<String, dynamic>? bokeh = null,
   }) : _bokeh = bokeh,
        super._();
@@ -312,6 +344,16 @@ class _$LensProfileImpl extends _LensProfile {
   @override
   @JsonKey()
   final double distortion;
+
+  /// Vignette center X (0–1, default 0.5 = image centre).
+  @override
+  @JsonKey()
+  final double vignetteOffsetX;
+
+  /// Vignette center Y (0–1, default 0.5 = image centre).
+  @override
+  @JsonKey()
+  final double vignetteOffsetY;
   // — Reserved for v3 —
   /// Bokeh simulation parameters. Null until v3 depth-map work.
   final Map<String, dynamic>? _bokeh;
@@ -329,7 +371,7 @@ class _$LensProfileImpl extends _LensProfile {
 
   @override
   String toString() {
-    return 'LensProfile(id: $id, name: $name, description: $description, tier: $tier, vignetteIntensity: $vignetteIntensity, vignetteShape: $vignetteShape, chromaticAberration: $chromaticAberration, cornerSoftness: $cornerSoftness, distortion: $distortion, bokeh: $bokeh)';
+    return 'LensProfile(id: $id, name: $name, description: $description, tier: $tier, vignetteIntensity: $vignetteIntensity, vignetteShape: $vignetteShape, chromaticAberration: $chromaticAberration, cornerSoftness: $cornerSoftness, distortion: $distortion, vignetteOffsetX: $vignetteOffsetX, vignetteOffsetY: $vignetteOffsetY, bokeh: $bokeh)';
   }
 
   @override
@@ -352,6 +394,10 @@ class _$LensProfileImpl extends _LensProfile {
                 other.cornerSoftness == cornerSoftness) &&
             (identical(other.distortion, distortion) ||
                 other.distortion == distortion) &&
+            (identical(other.vignetteOffsetX, vignetteOffsetX) ||
+                other.vignetteOffsetX == vignetteOffsetX) &&
+            (identical(other.vignetteOffsetY, vignetteOffsetY) ||
+                other.vignetteOffsetY == vignetteOffsetY) &&
             const DeepCollectionEquality().equals(other._bokeh, _bokeh));
   }
 
@@ -368,6 +414,8 @@ class _$LensProfileImpl extends _LensProfile {
     chromaticAberration,
     cornerSoftness,
     distortion,
+    vignetteOffsetX,
+    vignetteOffsetY,
     const DeepCollectionEquality().hash(_bokeh),
   );
 
@@ -396,6 +444,8 @@ abstract class _LensProfile extends LensProfile {
     final double chromaticAberration,
     final double cornerSoftness,
     final double distortion,
+    final double vignetteOffsetX,
+    final double vignetteOffsetY,
     final Map<String, dynamic>? bokeh,
   }) = _$LensProfileImpl;
   const _LensProfile._() : super._();
@@ -436,7 +486,15 @@ abstract class _LensProfile extends LensProfile {
 
   /// Barrel (positive) or pincushion (negative) distortion.
   @override
-  double get distortion; // — Reserved for v3 —
+  double get distortion;
+
+  /// Vignette center X (0–1, default 0.5 = image centre).
+  @override
+  double get vignetteOffsetX;
+
+  /// Vignette center Y (0–1, default 0.5 = image centre).
+  @override
+  double get vignetteOffsetY; // — Reserved for v3 —
   /// Bokeh simulation parameters. Null until v3 depth-map work.
   @override
   Map<String, dynamic>? get bokeh;

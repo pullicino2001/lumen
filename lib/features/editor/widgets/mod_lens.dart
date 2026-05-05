@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/data/lens_profiles.dart';
 import '../../../core/models/lens_profile.dart';
@@ -25,18 +26,16 @@ class ModLens extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: Container(
-              height: 130,
-              decoration: BoxDecoration(
-                border: Border.all(color: kHair, width: 0.5),
-              ),
-              child: CustomPaint(
-                painter: _OpticalDiagramPainter(profile: activeProfile),
-                size: const Size(double.infinity, 130),
-              ),
-            ),
+          _VignettePicker(
+            profile: activeProfile,
+            onOffsetChanged: (x, y) {
+              if (activeProfile != null) {
+                ref.read(editStateProvider.notifier).setLensProfile(
+                      activeProfile.copyWith(
+                          vignetteOffsetX: x, vignetteOffsetY: y),
+                    );
+              }
+            },
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -44,16 +43,18 @@ class ModLens extends ConsumerWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: profiles.length,
-              separatorBuilder: (_, x) => const SizedBox(width: 6),
+              separatorBuilder: (context, index) => const SizedBox(width: 6),
               itemBuilder: (context, i) {
                 final p = profiles[i];
-                final on = (p?.id == activeProfile?.id) && (p == null) == (activeProfile == null);
+                final on = (p?.id == activeProfile?.id) &&
+                    (p == null) == (activeProfile == null);
                 final label = p?.name ?? 'None';
                 return GestureDetector(
                   onTap: () => setProfile(p),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: on ? kAmberSoft : Colors.transparent,
                       border: Border.all(
@@ -111,31 +112,128 @@ class ModLens extends ConsumerWidget {
   }
 }
 
-class _OpticalDiagramPainter extends CustomPainter {
-  const _OpticalDiagramPainter({required this.profile});
+// ─────────────────────────────────────────────────────────────────────────────
+// INTERACTIVE VIGNETTE PICKER
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _VignettePicker extends StatefulWidget {
+  const _VignettePicker({
+    required this.profile,
+    required this.onOffsetChanged,
+  });
+
   final LensProfile? profile;
+
+  /// Called with (x, y) in 0–1 range as the user drags.
+  /// Called once more on drag end with the final position.
+  final void Function(double x, double y) onOffsetChanged;
+
+  @override
+  State<_VignettePicker> createState() => _VignettePickerState();
+}
+
+class _VignettePickerState extends State<_VignettePicker> {
+  late Offset _center;
+
+  static const double _kH = 130.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _center = _centerFromProfile(widget.profile);
+  }
+
+  @override
+  void didUpdateWidget(_VignettePicker old) {
+    super.didUpdateWidget(old);
+    // Sync if an external change (e.g. undo) updates the profile offsets.
+    final nx = widget.profile?.vignetteOffsetX ?? 0.5;
+    final ny = widget.profile?.vignetteOffsetY ?? 0.5;
+    final ox = old.profile?.vignetteOffsetX ?? 0.5;
+    final oy = old.profile?.vignetteOffsetY ?? 0.5;
+    if ((nx - ox).abs() > 0.001 || (ny - oy).abs() > 0.001) {
+      _center = Offset(nx, ny);
+    }
+  }
+
+  static Offset _centerFromProfile(LensProfile? p) =>
+      Offset(p?.vignetteOffsetX ?? 0.5, p?.vignetteOffsetY ?? 0.5);
+
+  void _onPanUpdate(DragUpdateDetails d) {
+    final box = context.findRenderObject() as RenderBox;
+    final size = box.size;
+    setState(() {
+      _center = Offset(
+        (_center.dx + d.delta.dx / size.width).clamp(0.05, 0.95),
+        (_center.dy + d.delta.dy / size.height).clamp(0.05, 0.95),
+      );
+    });
+    widget.onOffsetChanged(_center.dx, _center.dy);
+  }
+
+  void _onDoubleTap() {
+    HapticFeedback.lightImpact();
+    setState(() => _center = const Offset(0.5, 0.5));
+    widget.onOffsetChanged(0.5, 0.5);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onPanUpdate: widget.profile != null ? _onPanUpdate : null,
+      onDoubleTap: widget.profile != null ? _onDoubleTap : null,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: Container(
+          height: _kH,
+          decoration: BoxDecoration(
+            border: Border.all(color: kHair, width: 0.5),
+          ),
+          child: CustomPaint(
+            painter: _VignetteDiagramPainter(
+              profile: widget.profile,
+              center: _center,
+            ),
+            size: const Size(double.infinity, _kH),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _VignetteDiagramPainter extends CustomPainter {
+  const _VignetteDiagramPainter({
+    required this.profile,
+    required this.center,
+  });
+
+  final LensProfile? profile;
+  final Offset center;
 
   @override
   void paint(Canvas canvas, Size size) {
     final w = size.width, h = size.height;
     final vig = profile?.vignetteIntensity ?? 0;
-    final ca  = (profile?.chromaticAberration ?? 0).clamp(0.0, 1.0);
+    final ca = (profile?.chromaticAberration ?? 0).clamp(0.0, 1.0);
+    final cx = center.dx * w;
+    final cy = center.dy * h;
 
-    // warm field
+    // Background
     canvas.drawRect(
       Rect.fromLTWH(0, 0, w, h),
       Paint()..color = const Color(0xFF2A1A0C),
     );
 
-    // grid
+    // Grid
     final gridPaint = Paint()..color = kHair..strokeWidth = 0.5;
     for (int i = 0; i <= 8; i++) {
-      final x = w * i / 8;
-      canvas.drawLine(Offset(x, 0), Offset(x, h), gridPaint);
+      canvas.drawLine(Offset(w * i / 8, 0), Offset(w * i / 8, h), gridPaint);
     }
     for (int i = 0; i <= 5; i++) {
-      final y = h * i / 5;
-      canvas.drawLine(Offset(0, y), Offset(w, y), gridPaint);
+      canvas.drawLine(Offset(0, h * i / 5), Offset(w, h * i / 5), gridPaint);
     }
 
     // CA fringing at corners
@@ -149,38 +247,62 @@ class _OpticalDiagramPainter extends CustomPainter {
       ];
       for (final c in corners) {
         canvas.drawLine(c[0], c[1],
-            Paint()..color = kRed.withValues(alpha: caStrength)..strokeWidth = 1);
+            Paint()
+              ..color = kRed.withValues(alpha: caStrength)
+              ..strokeWidth = 1);
         canvas.drawLine(
           c[0].translate(2, 0),
           c[1].translate(2, 0),
-          Paint()..color = kTeal.withValues(alpha: caStrength)..strokeWidth = 1,
+          Paint()
+            ..color = kTeal.withValues(alpha: caStrength)
+            ..strokeWidth = 1,
         );
       }
     }
 
-    // vignette
+    // Vignette gradient — centred on the draggable point
     if (vig > 0) {
       final vigGrad = RadialGradient(
+        center: Alignment(center.dx * 2 - 1, center.dy * 2 - 1),
+        radius: 1.1,
         colors: [Colors.transparent, Colors.black.withValues(alpha: vig)],
-        stops: const [0.5, 1.0],
+        stops: const [0.4, 1.0],
       ).createShader(Rect.fromLTWH(0, 0, w, h));
-      canvas.drawRect(Rect.fromLTWH(0, 0, w, h), Paint()..shader = vigGrad);
+      canvas.drawRect(
+          Rect.fromLTWH(0, 0, w, h), Paint()..shader = vigGrad);
     }
 
-    // center crosshair
-    final cx = w / 2, cy = h / 2;
-    final crossPaint = Paint()..color = kAmber..strokeWidth = 0.5;
-    canvas.drawCircle(Offset(cx, cy), 3, Paint()..color = kAmber);
-    canvas.drawCircle(Offset(cx, cy), 14,
-        Paint()..color = kAmber.withValues(alpha: 0.5)..style = PaintingStyle.stroke..strokeWidth = 0.5);
-    canvas.drawLine(Offset(cx - 12, cy), Offset(cx + 12, cy), crossPaint);
-    canvas.drawLine(Offset(cx, cy - 12), Offset(cx, cy + 12), crossPaint);
+    // Draggable crosshair at vignette center
+    final crossPaint = Paint()
+      ..color = kAmber
+      ..strokeWidth = 0.5;
+    canvas.drawCircle(Offset(cx, cy), 4,
+        Paint()..color = kAmber);
+    canvas.drawCircle(
+        Offset(cx, cy),
+        16,
+        Paint()
+          ..color = kAmber.withValues(alpha: 0.45)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.5);
+    canvas.drawLine(Offset(cx - 14, cy), Offset(cx + 14, cy), crossPaint);
+    canvas.drawLine(Offset(cx, cy - 14), Offset(cx, cy + 14), crossPaint);
 
-    // labels
-    _text(canvas, '${profile?.name ?? "None"} · ${_focalLabel()}',
-        monoStyle(size: 9, color: kAmber, letterSpacing: 2), Offset(8, h - 12));
-    _text(canvas, 'VIG ${(vig * 100).round()} · CA ${(ca * 100).round()}',
-        monoStyle(size: 9, letterSpacing: 2), Offset(w - 8, h - 12),
+    // Labels
+    final isCenter =
+        (center.dx - 0.5).abs() < 0.01 && (center.dy - 0.5).abs() < 0.01;
+    _text(
+        canvas,
+        '${profile?.name ?? "None"} · ${_focalLabel()}',
+        monoStyle(size: 9, color: kAmber, letterSpacing: 2),
+        Offset(8, h - 12));
+    _text(
+        canvas,
+        isCenter
+            ? 'VIG ${(vig * 100).round()}  DRAG TO OFFSET'
+            : 'VIG ${(vig * 100).round()}  ·  ${(center.dx * 100).round()} ${(center.dy * 100).round()}',
+        monoStyle(size: 9, letterSpacing: 2),
+        Offset(w - 8, h - 12),
         align: TextAlign.right);
   }
 
@@ -192,7 +314,7 @@ class _OpticalDiagramPainter extends CustomPainter {
       'wide_24'     => 'f/2.8',
       'vintage_35'  => 'f/2.8',
       'anamorphic'  => 'f/2.0',
-      _             => 'f/—',
+      _ => 'f/—',
     };
   }
 
@@ -208,5 +330,9 @@ class _OpticalDiagramPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_OpticalDiagramPainter old) => old.profile?.id != profile?.id;
+  bool shouldRepaint(_VignetteDiagramPainter old) =>
+      old.center != center ||
+      old.profile?.id != profile?.id ||
+      old.profile?.vignetteIntensity != profile?.vignetteIntensity ||
+      old.profile?.chromaticAberration != profile?.chromaticAberration;
 }

@@ -11,6 +11,8 @@ import 'bloom_service.dart';
 class EffectEngine {
   EffectEngine();
 
+  static final _rng = math.Random();
+
   Future<ui.Image> apply({
     required EditState state,
     required ui.Image sourceImage,
@@ -24,7 +26,7 @@ class EffectEngine {
     final canvas = ui.Canvas(recorder, ui.Rect.fromLTWH(0, 0, w, h));
 
     final shader = program.fragmentShader();
-    final grainSeed = math.Random().nextDouble();
+    final grainSeed = _rng.nextDouble();
     _bindUniforms(shader, state, ui.Size(w, h), sourceImage, grainSeed);
     canvas.drawRect(
       ui.Rect.fromLTWH(0, 0, w, h),
@@ -33,6 +35,7 @@ class EffectEngine {
 
     final processed =
         await recorder.endRecording().toImage(sourceImage.width, sourceImage.height);
+    shader.dispose();
 
     final bloomActive = bloomPrograms != null &&
         state.bloomEnabled &&
@@ -108,6 +111,8 @@ class EffectEngine {
     shader.setFloat(46, lens?.vignetteShape       ?? 0.0);
     shader.setFloat(47, lens?.chromaticAberration ?? 0.0);
     shader.setFloat(48, lens?.distortion          ?? 0.0);
+    shader.setFloat(49, lens?.vignetteOffsetX     ?? 0.5);
+    shader.setFloat(50, lens?.vignetteOffsetY     ?? 0.5);
     // Sampler
     shader.setImageSampler(0, sourceImage);
   }

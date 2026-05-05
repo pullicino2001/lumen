@@ -43,6 +43,9 @@ app.*.map.json
 scripts/firebase-distribute/.env
 scripts/distribute/.env
 
+# Atlas Cloud API key — never commit
+.env
+
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile

@@ -288,6 +288,8 @@ class _HybridEditorState extends State<_HybridEditor> {
   List<Rect>? _lastExclusionRects;
   bool _hudsVisible = true;
   bool _showOriginal = false;
+  double? _swipeStartY;
+  double? _swipeStartX;
 
   // Fixed heights of the non-module chrome inside the sheet:
   //   handle 20 + header ~56 + tab dock ~60 = 136
@@ -386,18 +388,36 @@ class _HybridEditorState extends State<_HybridEditor> {
           ),
         ),
 
-        // Swipe strip — fast vertical swipe toggles HUD visibility.
+        // Swipe anywhere on the photo to show/hide HUDs.
+        // Uses a Listener (outside the gesture arena) so it never conflicts
+        // with InteractiveViewer's pan/pinch or the long-press before-toggle.
         Positioned(
-          top: topPad + 46, left: 0, right: 0, height: 52,
-          child: GestureDetector(
+          top: 0, left: 0, right: 0,
+          bottom: sheetH - 32,
+          child: Listener(
             behavior: HitTestBehavior.translucent,
-            onVerticalDragEnd: (d) {
-              final dy = d.velocity.pixelsPerSecond.dy;
-              if (dy.abs() < 250) return;
+            onPointerDown: (e) {
+              _swipeStartY = e.position.dy;
+              _swipeStartX = e.position.dx;
+            },
+            onPointerUp: (e) {
+              final sy = _swipeStartY;
+              final sx = _swipeStartX;
+              _swipeStartY = null;
+              _swipeStartX = null;
+              if (sy == null || sx == null) return;
+              final dy = e.position.dy - sy;
+              final dx = e.position.dx - sx;
+              // At least 36px vertical and more vertical than horizontal.
+              if (dy.abs() < 36 || dy.abs() < dx.abs()) return;
               final show = dy > 0;
               if (show == _hudsVisible) return;
               HapticFeedback.selectionClick();
               setState(() => _hudsVisible = show);
+            },
+            onPointerCancel: (_) {
+              _swipeStartY = null;
+              _swipeStartX = null;
             },
           ),
         ),

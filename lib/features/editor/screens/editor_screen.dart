@@ -12,6 +12,8 @@ import '../../../core/providers/shader_provider.dart';
 import '../../../core/providers/preview_image_provider.dart';
 import '../../../core/providers/bloom_shader_provider.dart';
 import '../../../core/providers/gallery_provider.dart';
+import '../../../core/providers/histogram_provider.dart';
+import '../../../core/providers/exif_provider.dart';
 import '../../../core/services/format_ingestion_service.dart';
 import '../../../core/services/lumen_look_service.dart';
 import '../../../core/services/effect_engine.dart';
@@ -284,6 +286,8 @@ class _HybridEditor extends StatefulWidget {
 class _HybridEditorState extends State<_HybridEditor> {
   double? _sheetH;
   List<Rect>? _lastExclusionRects;
+  bool _hudsVisible = true;
+  bool _showOriginal = false;
 
   // Fixed heights of the non-module chrome inside the sheet:
   //   handle 20 + header ~56 + tab dock ~60 = 136
@@ -359,7 +363,11 @@ class _HybridEditorState extends State<_HybridEditor> {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                _PhotoArea(onTap: widget.onEnterFullscreen),
+                _PhotoArea(
+                  onTap: widget.onEnterFullscreen,
+                  showOriginal: _showOriginal,
+                  onShowOriginalChanged: (v) => setState(() => _showOriginal = v),
+                ),
                 // Fade gradient toward the sheet — outside InteractiveViewer.
                 Positioned(
                   bottom: 0, left: 0, right: 0, height: 80,
@@ -378,28 +386,106 @@ class _HybridEditorState extends State<_HybridEditor> {
           ),
         ),
 
+        // Swipe strip — fast vertical swipe toggles HUD visibility.
+        Positioned(
+          top: topPad + 46, left: 0, right: 0, height: 52,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onVerticalDragEnd: (d) {
+              final dy = d.velocity.pixelsPerSecond.dy;
+              if (dy.abs() < 250) return;
+              final show = dy > 0;
+              if (show == _hudsVisible) return;
+              HapticFeedback.selectionClick();
+              setState(() => _hudsVisible = show);
+            },
+          ),
+        ),
+
         // Top nav.
         Positioned(
           top: topPad + 12, left: 0, right: 0,
           child: _TopNav(exporting: widget.exporting, onExport: widget.onExport, onBack: widget.onBack),
         ),
 
-        // Floating micro-panels.
+        // Floating micro-panels — fade+slide out when hidden or during compare.
         Positioned(
           top: topPad + 66, left: 12,
-          child: const _HistogramPanel(),
+          child: IgnorePointer(
+            ignoring: !_hudsVisible || _showOriginal,
+            child: AnimatedOpacity(
+              opacity: (_hudsVisible && !_showOriginal) ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              child: AnimatedSlide(
+                offset: (_hudsVisible && !_showOriginal)
+                    ? Offset.zero
+                    : const Offset(-0.3, -0.3),
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                child: const _HistogramPanel(),
+              ),
+            ),
+          ),
         ),
         Positioned(
           top: topPad + 66, right: 12,
-          child: const _FilmLookPanel(),
+          child: IgnorePointer(
+            ignoring: !_hudsVisible || _showOriginal,
+            child: AnimatedOpacity(
+              opacity: (_hudsVisible && !_showOriginal) ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              child: AnimatedSlide(
+                offset: (_hudsVisible && !_showOriginal)
+                    ? Offset.zero
+                    : const Offset(0.3, -0.3),
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                child: const _FilmLookPanel(),
+              ),
+            ),
+          ),
         ),
         Positioned(
           top: topPad + 176, left: 12,
-          child: const _ExifPanel(),
+          child: IgnorePointer(
+            ignoring: !_hudsVisible || _showOriginal,
+            child: AnimatedOpacity(
+              opacity: (_hudsVisible && !_showOriginal) ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              child: AnimatedSlide(
+                offset: (_hudsVisible && !_showOriginal)
+                    ? Offset.zero
+                    : const Offset(-0.3, 0.3),
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                child: const _ExifPanel(),
+              ),
+            ),
+          ),
         ),
         Positioned(
           top: topPad + 176, right: 12,
-          child: const _ComparePanel(),
+          child: IgnorePointer(
+            ignoring: !_hudsVisible || _showOriginal,
+            child: AnimatedOpacity(
+              opacity: (_hudsVisible && !_showOriginal) ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOut,
+              child: AnimatedSlide(
+                offset: (_hudsVisible && !_showOriginal)
+                    ? Offset.zero
+                    : const Offset(0.3, 0.3),
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOut,
+                child: _ComparePanel(
+                  onCompare: (v) => setState(() => _showOriginal = v),
+                ),
+              ),
+            ),
+          ),
         ),
 
         // Drag-up sheet.
@@ -421,15 +507,20 @@ class _HybridEditorState extends State<_HybridEditor> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PhotoArea extends ConsumerStatefulWidget {
-  const _PhotoArea({this.onTap});
+  const _PhotoArea({
+    this.onTap,
+    required this.showOriginal,
+    required this.onShowOriginalChanged,
+  });
   final VoidCallback? onTap;
+  final bool showOriginal;
+  final ValueChanged<bool> onShowOriginalChanged;
 
   @override
   ConsumerState<_PhotoArea> createState() => _PhotoAreaState();
 }
 
 class _PhotoAreaState extends ConsumerState<_PhotoArea> {
-  bool _showOriginal = false;
   final _txController = TransformationController();
 
   @override
@@ -444,9 +535,9 @@ class _PhotoAreaState extends ConsumerState<_PhotoArea> {
       onTap: widget.onTap,
       onLongPressStart: (_) {
         HapticFeedback.mediumImpact();
-        setState(() => _showOriginal = true);
+        widget.onShowOriginalChanged(true);
       },
-      onLongPressEnd: (_) => setState(() => _showOriginal = false),
+      onLongPressEnd: (_) => widget.onShowOriginalChanged(false),
       child: InteractiveViewer(
         transformationController: _txController,
         minScale: 1.0,
@@ -454,10 +545,10 @@ class _PhotoAreaState extends ConsumerState<_PhotoArea> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            _showOriginal
+            widget.showOriginal
                 ? const _OriginalPreview()
                 : const RepaintBoundary(child: ShaderPreview()),
-            if (_showOriginal)
+            if (widget.showOriginal)
               Positioned(
                 top: 12, left: 0, right: 0,
                 child: Center(
@@ -669,11 +760,13 @@ class _FloatingPanel extends StatelessWidget {
   }
 }
 
-class _HistogramPanel extends StatelessWidget {
+class _HistogramPanel extends ConsumerWidget {
   const _HistogramPanel();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final histAsync = ref.watch(histogramProvider);
+
     return _FloatingPanel(
       width: 118,
       label: 'Histogram',
@@ -684,7 +777,13 @@ class _HistogramPanel extends StatelessWidget {
         child: SizedBox(
           height: 40,
           child: RepaintBoundary(
-            child: CustomPaint(painter: _HistogramPainter()),
+            child: histAsync.when(
+              data: (data) => data != null
+                  ? CustomPaint(painter: _HistogramPainter(data))
+                  : const SizedBox.shrink(),
+              loading: () => const SizedBox.shrink(),
+              error: (e, s) => const SizedBox.shrink(),
+            ),
           ),
         ),
       ),
@@ -693,24 +792,32 @@ class _HistogramPanel extends StatelessWidget {
 }
 
 class _HistogramPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final pts  = [0.0, 5.0, 15.0, 25.0, 35.0, 45.0, 55.0, 65.0, 75.0, 85.0, 95.0, 100.0];
-    final vals = [1.0, 0.78, 0.72, 0.44, 0.56, 0.22, 0.33, 0.11, 0.28, 0.61, 0.89, 1.0];
+  const _HistogramPainter(this.data);
+  final HistogramData data;
 
+  void _drawChannel(Canvas canvas, Size size, List<double> vals, Color color) {
+    if (vals.isEmpty) return;
+    final buckets = vals.length;
     final path = Path()..moveTo(0, size.height);
-    for (int i = 0; i < pts.length; i++) {
-      path.lineTo(size.width * pts[i] / 100, size.height * (1 - vals[i]));
+    for (int i = 0; i < buckets; i++) {
+      final x = size.width * i / (buckets - 1);
+      final y = size.height * (1 - vals[i]);
+      path.lineTo(x, y);
     }
     path.lineTo(size.width, size.height);
     path.close();
-
-    canvas.drawPath(
-        path, Paint()..color = kAmber.withValues(alpha: 0.55));
+    canvas.drawPath(path, Paint()..color = color.withValues(alpha: 0.45));
   }
 
   @override
-  bool shouldRepaint(_HistogramPainter _) => false;
+  void paint(Canvas canvas, Size size) {
+    _drawChannel(canvas, size, data.b, const Color(0xFF5588FF));
+    _drawChannel(canvas, size, data.g, const Color(0xFF44CC66));
+    _drawChannel(canvas, size, data.r, const Color(0xFFFF5544));
+  }
+
+  @override
+  bool shouldRepaint(_HistogramPainter old) => old.data != data;
 }
 
 // Watches only filmStock — rebuilds only when that specific field changes.
@@ -726,7 +833,7 @@ class _FilmLookPanel extends ConsumerWidget {
 
     return _FloatingPanel(
       width: 128,
-      label: 'Film Look',
+      label: 'Stock',
       labelRight: Container(
         width: 6, height: 6,
         decoration:
@@ -775,11 +882,22 @@ class _FilmLookPanel extends ConsumerWidget {
   }
 }
 
-class _ExifPanel extends StatelessWidget {
+class _ExifPanel extends ConsumerWidget {
   const _ExifPanel();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final exif = ref.watch(exifDataProvider).valueOrNull;
+
+    String fmt(String? val, String fallback) => val ?? fallback;
+
+    final focal = exif?.focalLength != null ? '${exif!.focalLength}mm' : null;
+    final fnum  = exif?.fNumber != null
+        ? 'f/${exif!.fNumber!.toStringAsFixed(exif.fNumber! < 10 ? 1 : 0)}'
+        : null;
+    final shutter = exif?.shutterSpeed;
+    final iso     = exif?.iso != null ? 'ISO ${exif!.iso}' : null;
+
     return _FloatingPanel(
       width: 90,
       child: Padding(
@@ -787,10 +905,10 @@ class _ExifPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('35mm',    style: monoStyle(size: 9, letterSpacing: 1)),
-            Text('f/2.8',  style: monoStyle(size: 9, letterSpacing: 1)),
-            Text('1/250',  style: monoStyle(size: 9, letterSpacing: 1)),
-            Text('ISO 400',style: monoStyle(size: 9, letterSpacing: 1)),
+            Text(fmt(focal,   '—'),     style: monoStyle(size: 9, letterSpacing: 1)),
+            Text(fmt(fnum,    '—'),     style: monoStyle(size: 9, letterSpacing: 1)),
+            Text(fmt(shutter, '—'),     style: monoStyle(size: 9, letterSpacing: 1)),
+            Text(fmt(iso,     '—'),     style: monoStyle(size: 9, letterSpacing: 1)),
           ],
         ),
       ),
@@ -798,23 +916,54 @@ class _ExifPanel extends StatelessWidget {
   }
 }
 
-class _ComparePanel extends StatelessWidget {
-  const _ComparePanel();
+class _ComparePanel extends StatefulWidget {
+  const _ComparePanel({required this.onCompare});
+  final ValueChanged<bool> onCompare;
+
+  @override
+  State<_ComparePanel> createState() => _ComparePanelState();
+}
+
+class _ComparePanelState extends State<_ComparePanel> {
+  bool _active = false;
 
   @override
   Widget build(BuildContext context) {
-    return _FloatingPanel(
-      width: 96,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('BEFORE', style: monoStyle(size: 9, letterSpacing: 1.5)),
-            Text('AFTER',
+    return GestureDetector(
+      onLongPressStart: (_) {
+        HapticFeedback.mediumImpact();
+        setState(() => _active = true);
+        widget.onCompare(true);
+      },
+      onLongPressEnd: (_) {
+        setState(() => _active = false);
+        widget.onCompare(false);
+      },
+      child: _FloatingPanel(
+        width: 96,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 150),
                 style: monoStyle(
-                    size: 9, color: kAmber, letterSpacing: 1.5)),
-          ],
+                    size: 9,
+                    color: _active ? kAmber : kText,
+                    letterSpacing: 1.5),
+                child: const Text('BEFORE'),
+              ),
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 150),
+                style: monoStyle(
+                    size: 9,
+                    color: _active ? kMute : kAmber,
+                    letterSpacing: 1.5),
+                child: const Text('AFTER'),
+              ),
+            ],
+          ),
         ),
       ),
     );

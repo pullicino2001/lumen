@@ -44,6 +44,7 @@ _$FilmStockImpl _$$FilmStockImplFromJson(
           .toList() ??
       const [1.0, 0.35, 0.05],
   intensity: (json['intensity'] as num?)?.toDouble() ?? 85.0,
+  promptFragment: json['promptFragment'] as String? ?? '',
 );
 
 Map<String, dynamic> _$$FilmStockImplToJson(_$FilmStockImpl instance) =>
@@ -62,6 +63,7 @@ Map<String, dynamic> _$$FilmStockImplToJson(_$FilmStockImpl instance) =>
       'highlightHueStrength': instance.highlightHueStrength,
       'halationTint': instance.halationTint,
       'intensity': instance.intensity,
+      'promptFragment': instance.promptFragment,
     };
 
 const _$StockTierEnumMap = {StockTier.free: 'free', StockTier.pro: 'pro'};

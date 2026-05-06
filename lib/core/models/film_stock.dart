@@ -55,11 +55,16 @@ abstract class FilmStock with _$FilmStock implements PromptContributor {
 
     // ── User intensity blend (0–100) ──────────────────────────────────────
     @Default(85.0) double intensity,
+
+    // ── AI generation prompt fragment ─────────────────────────────────────
+    /// Plain-text prompt fragment for AI generation. Image-agnostic and model-agnostic.
+    /// Assembled by GenerationPromptBuilder into the full generation prompt.
+    @Default('') String promptFragment,
   }) = _FilmStock;
 
   factory FilmStock.fromJson(Map<String, dynamic> json) =>
       _$FilmStockFromJson(json);
 
   @override
-  String toPromptFragment() => '';
+  String toPromptFragment() => promptFragment;
 }

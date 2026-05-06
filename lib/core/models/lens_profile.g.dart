@@ -23,6 +23,7 @@ _$LensProfileImpl _$$LensProfileImplFromJson(Map<String, dynamic> json) =>
       vignetteOffsetX: (json['vignetteOffsetX'] as num?)?.toDouble() ?? 0.5,
       vignetteOffsetY: (json['vignetteOffsetY'] as num?)?.toDouble() ?? 0.5,
       bokeh: json['bokeh'] as Map<String, dynamic>? ?? null,
+      promptFragment: json['promptFragment'] as String? ?? '',
     );
 
 Map<String, dynamic> _$$LensProfileImplToJson(_$LensProfileImpl instance) =>
@@ -39,6 +40,7 @@ Map<String, dynamic> _$$LensProfileImplToJson(_$LensProfileImpl instance) =>
       'vignetteOffsetX': instance.vignetteOffsetX,
       'vignetteOffsetY': instance.vignetteOffsetY,
       'bokeh': instance.bokeh,
+      'promptFragment': instance.promptFragment,
     };
 
 const _$ProfileTierEnumMap = {ProfileTier.free: 'free', ProfileTier.pro: 'pro'};

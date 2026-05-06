@@ -56,11 +56,17 @@ abstract class LensProfile with _$LensProfile implements PromptContributor {
 
     /// Bokeh simulation parameters. Null until v3 depth-map work.
     @Default(null) Map<String, dynamic>? bokeh,
+
+    // — AI generation prompt fragment —
+
+    /// Plain-text prompt fragment for AI generation. Image-agnostic and model-agnostic.
+    /// Assembled by GenerationPromptBuilder into the full generation prompt.
+    @Default('') String promptFragment,
   }) = _LensProfile;
 
   factory LensProfile.fromJson(Map<String, dynamic> json) =>
       _$LensProfileFromJson(json);
 
   @override
-  String toPromptFragment() => '';
+  String toPromptFragment() => promptFragment;
 }

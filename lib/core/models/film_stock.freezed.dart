@@ -52,7 +52,11 @@ mixin _$FilmStock {
   // Kodak = warm orange [1.0, 0.35, 0.05]. Fuji = cooler [0.8, 0.45, 0.1].
   List<double> get halationTint =>
       throw _privateConstructorUsedError; // ── User intensity blend (0–100) ──────────────────────────────────────
-  double get intensity => throw _privateConstructorUsedError;
+  double get intensity =>
+      throw _privateConstructorUsedError; // ── AI generation prompt fragment ─────────────────────────────────────
+  /// Plain-text prompt fragment for AI generation. Image-agnostic and model-agnostic.
+  /// Assembled by GenerationPromptBuilder into the full generation prompt.
+  String get promptFragment => throw _privateConstructorUsedError;
 
   /// Serializes this FilmStock to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -84,6 +88,7 @@ abstract class $FilmStockCopyWith<$Res> {
     double highlightHueStrength,
     List<double> halationTint,
     double intensity,
+    String promptFragment,
   });
 }
 
@@ -116,6 +121,7 @@ class _$FilmStockCopyWithImpl<$Res, $Val extends FilmStock>
     Object? highlightHueStrength = null,
     Object? halationTint = null,
     Object? intensity = null,
+    Object? promptFragment = null,
   }) {
     return _then(
       _value.copyWith(
@@ -175,6 +181,10 @@ class _$FilmStockCopyWithImpl<$Res, $Val extends FilmStock>
                 ? _value.intensity
                 : intensity // ignore: cast_nullable_to_non_nullable
                       as double,
+            promptFragment: null == promptFragment
+                ? _value.promptFragment
+                : promptFragment // ignore: cast_nullable_to_non_nullable
+                      as String,
           )
           as $Val,
     );
@@ -205,6 +215,7 @@ abstract class _$$FilmStockImplCopyWith<$Res>
     double highlightHueStrength,
     List<double> halationTint,
     double intensity,
+    String promptFragment,
   });
 }
 
@@ -236,6 +247,7 @@ class __$$FilmStockImplCopyWithImpl<$Res>
     Object? highlightHueStrength = null,
     Object? halationTint = null,
     Object? intensity = null,
+    Object? promptFragment = null,
   }) {
     return _then(
       _$FilmStockImpl(
@@ -295,6 +307,10 @@ class __$$FilmStockImplCopyWithImpl<$Res>
             ? _value.intensity
             : intensity // ignore: cast_nullable_to_non_nullable
                   as double,
+        promptFragment: null == promptFragment
+            ? _value.promptFragment
+            : promptFragment // ignore: cast_nullable_to_non_nullable
+                  as String,
       ),
     );
   }
@@ -328,6 +344,7 @@ class _$FilmStockImpl extends _FilmStock {
     this.highlightHueStrength = 0.0,
     final List<double> halationTint = const [1.0, 0.35, 0.05],
     this.intensity = 85.0,
+    this.promptFragment = '',
   }) : _colourMatrix = colourMatrix,
        _redCurve = redCurve,
        _greenCurve = greenCurve,
@@ -440,10 +457,16 @@ class _$FilmStockImpl extends _FilmStock {
   @override
   @JsonKey()
   final double intensity;
+  // ── AI generation prompt fragment ─────────────────────────────────────
+  /// Plain-text prompt fragment for AI generation. Image-agnostic and model-agnostic.
+  /// Assembled by GenerationPromptBuilder into the full generation prompt.
+  @override
+  @JsonKey()
+  final String promptFragment;
 
   @override
   String toString() {
-    return 'FilmStock(id: $id, name: $name, description: $description, tier: $tier, colourMatrix: $colourMatrix, redCurve: $redCurve, greenCurve: $greenCurve, blueCurve: $blueCurve, shadowHueDeg: $shadowHueDeg, shadowHueStrength: $shadowHueStrength, highlightHueDeg: $highlightHueDeg, highlightHueStrength: $highlightHueStrength, halationTint: $halationTint, intensity: $intensity)';
+    return 'FilmStock(id: $id, name: $name, description: $description, tier: $tier, colourMatrix: $colourMatrix, redCurve: $redCurve, greenCurve: $greenCurve, blueCurve: $blueCurve, shadowHueDeg: $shadowHueDeg, shadowHueStrength: $shadowHueStrength, highlightHueDeg: $highlightHueDeg, highlightHueStrength: $highlightHueStrength, halationTint: $halationTint, intensity: $intensity, promptFragment: $promptFragment)';
   }
 
   @override
@@ -482,7 +505,9 @@ class _$FilmStockImpl extends _FilmStock {
               _halationTint,
             ) &&
             (identical(other.intensity, intensity) ||
-                other.intensity == intensity));
+                other.intensity == intensity) &&
+            (identical(other.promptFragment, promptFragment) ||
+                other.promptFragment == promptFragment));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -503,6 +528,7 @@ class _$FilmStockImpl extends _FilmStock {
     highlightHueStrength,
     const DeepCollectionEquality().hash(_halationTint),
     intensity,
+    promptFragment,
   );
 
   /// Create a copy of FilmStock
@@ -535,6 +561,7 @@ abstract class _FilmStock extends FilmStock {
     final double highlightHueStrength,
     final List<double> halationTint,
     final double intensity,
+    final String promptFragment,
   }) = _$FilmStockImpl;
   const _FilmStock._() : super._();
 
@@ -581,7 +608,11 @@ abstract class _FilmStock extends FilmStock {
   @override
   List<double> get halationTint; // ── User intensity blend (0–100) ──────────────────────────────────────
   @override
-  double get intensity;
+  double get intensity; // ── AI generation prompt fragment ─────────────────────────────────────
+  /// Plain-text prompt fragment for AI generation. Image-agnostic and model-agnostic.
+  /// Assembled by GenerationPromptBuilder into the full generation prompt.
+  @override
+  String get promptFragment;
 
   /// Create a copy of FilmStock
   /// with the given fields replaced by the non-null parameter values.

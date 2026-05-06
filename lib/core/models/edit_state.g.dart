@@ -19,6 +19,11 @@ _$EditStateImpl _$$EditStateImplFromJson(Map<String, dynamic> json) =>
       lensProfile: json['lensProfile'] == null
           ? null
           : LensProfile.fromJson(json['lensProfile'] as Map<String, dynamic>),
+      cameraProfile: json['cameraProfile'] == null
+          ? null
+          : CameraProfile.fromJson(
+              json['cameraProfile'] as Map<String, dynamic>,
+            ),
       filmStock: json['filmStock'] == null
           ? null
           : FilmStock.fromJson(json['filmStock'] as Map<String, dynamic>),
@@ -28,6 +33,7 @@ _$EditStateImpl _$$EditStateImplFromJson(Map<String, dynamic> json) =>
       bloom: json['bloom'] == null
           ? const BloomSettings()
           : BloomSettings.fromJson(json['bloom'] as Map<String, dynamic>),
+      cameraEnabled: json['cameraEnabled'] as bool? ?? true,
       lensEnabled: json['lensEnabled'] as bool? ?? true,
       stockEnabled: json['stockEnabled'] as bool? ?? true,
       grainEnabled: json['grainEnabled'] as bool? ?? true,
@@ -47,9 +53,11 @@ Map<String, dynamic> _$$EditStateImplToJson(_$EditStateImpl instance) =>
       'proxyFilePath': instance.proxyFilePath,
       'basicEditor': instance.basicEditor,
       'lensProfile': instance.lensProfile,
+      'cameraProfile': instance.cameraProfile,
       'filmStock': instance.filmStock,
       'grain': instance.grain,
       'bloom': instance.bloom,
+      'cameraEnabled': instance.cameraEnabled,
       'lensEnabled': instance.lensEnabled,
       'stockEnabled': instance.stockEnabled,
       'grainEnabled': instance.grainEnabled,

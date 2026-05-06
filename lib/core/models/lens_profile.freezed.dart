@@ -55,7 +55,11 @@ mixin _$LensProfile {
   double get vignetteOffsetY =>
       throw _privateConstructorUsedError; // — Reserved for v3 —
   /// Bokeh simulation parameters. Null until v3 depth-map work.
-  Map<String, dynamic>? get bokeh => throw _privateConstructorUsedError;
+  Map<String, dynamic>? get bokeh =>
+      throw _privateConstructorUsedError; // — AI generation prompt fragment —
+  /// Plain-text prompt fragment for AI generation. Image-agnostic and model-agnostic.
+  /// Assembled by GenerationPromptBuilder into the full generation prompt.
+  String get promptFragment => throw _privateConstructorUsedError;
 
   /// Serializes this LensProfile to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -87,6 +91,7 @@ abstract class $LensProfileCopyWith<$Res> {
     double vignetteOffsetX,
     double vignetteOffsetY,
     Map<String, dynamic>? bokeh,
+    String promptFragment,
   });
 }
 
@@ -117,6 +122,7 @@ class _$LensProfileCopyWithImpl<$Res, $Val extends LensProfile>
     Object? vignetteOffsetX = null,
     Object? vignetteOffsetY = null,
     Object? bokeh = freezed,
+    Object? promptFragment = null,
   }) {
     return _then(
       _value.copyWith(
@@ -168,6 +174,10 @@ class _$LensProfileCopyWithImpl<$Res, $Val extends LensProfile>
                 ? _value.bokeh
                 : bokeh // ignore: cast_nullable_to_non_nullable
                       as Map<String, dynamic>?,
+            promptFragment: null == promptFragment
+                ? _value.promptFragment
+                : promptFragment // ignore: cast_nullable_to_non_nullable
+                      as String,
           )
           as $Val,
     );
@@ -196,6 +206,7 @@ abstract class _$$LensProfileImplCopyWith<$Res>
     double vignetteOffsetX,
     double vignetteOffsetY,
     Map<String, dynamic>? bokeh,
+    String promptFragment,
   });
 }
 
@@ -225,6 +236,7 @@ class __$$LensProfileImplCopyWithImpl<$Res>
     Object? vignetteOffsetX = null,
     Object? vignetteOffsetY = null,
     Object? bokeh = freezed,
+    Object? promptFragment = null,
   }) {
     return _then(
       _$LensProfileImpl(
@@ -276,6 +288,10 @@ class __$$LensProfileImplCopyWithImpl<$Res>
             ? _value._bokeh
             : bokeh // ignore: cast_nullable_to_non_nullable
                   as Map<String, dynamic>?,
+        promptFragment: null == promptFragment
+            ? _value.promptFragment
+            : promptFragment // ignore: cast_nullable_to_non_nullable
+                  as String,
       ),
     );
   }
@@ -297,6 +313,7 @@ class _$LensProfileImpl extends _LensProfile {
     this.vignetteOffsetX = 0.5,
     this.vignetteOffsetY = 0.5,
     final Map<String, dynamic>? bokeh = null,
+    this.promptFragment = '',
   }) : _bokeh = bokeh,
        super._();
 
@@ -369,9 +386,16 @@ class _$LensProfileImpl extends _LensProfile {
     return EqualUnmodifiableMapView(value);
   }
 
+  // — AI generation prompt fragment —
+  /// Plain-text prompt fragment for AI generation. Image-agnostic and model-agnostic.
+  /// Assembled by GenerationPromptBuilder into the full generation prompt.
+  @override
+  @JsonKey()
+  final String promptFragment;
+
   @override
   String toString() {
-    return 'LensProfile(id: $id, name: $name, description: $description, tier: $tier, vignetteIntensity: $vignetteIntensity, vignetteShape: $vignetteShape, chromaticAberration: $chromaticAberration, cornerSoftness: $cornerSoftness, distortion: $distortion, vignetteOffsetX: $vignetteOffsetX, vignetteOffsetY: $vignetteOffsetY, bokeh: $bokeh)';
+    return 'LensProfile(id: $id, name: $name, description: $description, tier: $tier, vignetteIntensity: $vignetteIntensity, vignetteShape: $vignetteShape, chromaticAberration: $chromaticAberration, cornerSoftness: $cornerSoftness, distortion: $distortion, vignetteOffsetX: $vignetteOffsetX, vignetteOffsetY: $vignetteOffsetY, bokeh: $bokeh, promptFragment: $promptFragment)';
   }
 
   @override
@@ -398,7 +422,9 @@ class _$LensProfileImpl extends _LensProfile {
                 other.vignetteOffsetX == vignetteOffsetX) &&
             (identical(other.vignetteOffsetY, vignetteOffsetY) ||
                 other.vignetteOffsetY == vignetteOffsetY) &&
-            const DeepCollectionEquality().equals(other._bokeh, _bokeh));
+            const DeepCollectionEquality().equals(other._bokeh, _bokeh) &&
+            (identical(other.promptFragment, promptFragment) ||
+                other.promptFragment == promptFragment));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -417,6 +443,7 @@ class _$LensProfileImpl extends _LensProfile {
     vignetteOffsetX,
     vignetteOffsetY,
     const DeepCollectionEquality().hash(_bokeh),
+    promptFragment,
   );
 
   /// Create a copy of LensProfile
@@ -447,6 +474,7 @@ abstract class _LensProfile extends LensProfile {
     final double vignetteOffsetX,
     final double vignetteOffsetY,
     final Map<String, dynamic>? bokeh,
+    final String promptFragment,
   }) = _$LensProfileImpl;
   const _LensProfile._() : super._();
 
@@ -497,7 +525,11 @@ abstract class _LensProfile extends LensProfile {
   double get vignetteOffsetY; // — Reserved for v3 —
   /// Bokeh simulation parameters. Null until v3 depth-map work.
   @override
-  Map<String, dynamic>? get bokeh;
+  Map<String, dynamic>? get bokeh; // — AI generation prompt fragment —
+  /// Plain-text prompt fragment for AI generation. Image-agnostic and model-agnostic.
+  /// Assembled by GenerationPromptBuilder into the full generation prompt.
+  @override
+  String get promptFragment;
 
   /// Create a copy of LensProfile
   /// with the given fields replaced by the non-null parameter values.

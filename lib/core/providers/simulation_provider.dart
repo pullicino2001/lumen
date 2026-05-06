@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/simulation_presets.dart';
+import '../data/camera_profiles.dart';
 import '../data/film_stocks.dart';
+import '../data/lens_profiles.dart';
 import '../models/simulation_state.dart';
 import '../providers/edit_state_provider.dart';
 import '../services/atlas_cloud_service.dart';
@@ -41,17 +42,26 @@ class SimulationNotifier extends Notifier<SimulationState> {
     );
   }
 
+  void setStrength(double value) {
+    state = state.copyWith(strength: value);
+  }
+
   Future<void> simulate() async {
     final editState = ref.read(editStateProvider);
     if (editState == null) return;
 
-    final camera = kSimulationCameras[state.cameraIndex];
-    final lens = kSimulationLenses[state.lensIndex];
-    final stock =
-        state.stockIndex >= 0 ? kFilmStocks[state.stockIndex] : null;
+    final camera = kCameraProfiles[state.cameraIndex.clamp(0, kCameraProfiles.length - 1)];
+    final lens = kLensProfiles[state.lensIndex.clamp(0, kLensProfiles.length - 1)];
+    final stock = state.stockIndex >= 0 && state.stockIndex < kFilmStocks.length
+        ? kFilmStocks[state.stockIndex]
+        : null;
 
-    final prompt = buildSimulationPrompt(
-        camera: camera, lens: lens, stock: stock);
+    final parts = <String>[
+      camera.toPromptFragment(),
+      if (stock != null) stock.toPromptFragment(),
+      lens.toPromptFragment(),
+    ].where((s) => s.isNotEmpty).toList();
+    final prompt = parts.join(', ');
 
     state = state.copyWith(
       status: SimulationStatus.loading,
@@ -63,6 +73,7 @@ class SimulationNotifier extends Notifier<SimulationState> {
       final resultPath = await AtlasCloudService().simulateWithUrlFallback(
         imagePath: editState.proxyFilePath,
         prompt: prompt,
+        strength: state.strength,
       );
       state = state.copyWith(
         status: SimulationStatus.success,

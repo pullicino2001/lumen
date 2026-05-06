@@ -36,6 +36,9 @@ mixin _$EditState {
   /// Active lens profile. Null means lens layer is bypassed.
   LensProfile? get lensProfile => throw _privateConstructorUsedError;
 
+  /// Active camera profile. Null means the camera layer is bypassed.
+  CameraProfile? get cameraProfile => throw _privateConstructorUsedError;
+
   /// Active film stock. Null means the stock layer is bypassed.
   FilmStock? get filmStock => throw _privateConstructorUsedError;
 
@@ -45,6 +48,7 @@ mixin _$EditState {
   /// Bloom and halation parameters.
   BloomSettings get bloom =>
       throw _privateConstructorUsedError; // — Layer toggles —
+  bool get cameraEnabled => throw _privateConstructorUsedError;
   bool get lensEnabled => throw _privateConstructorUsedError;
   bool get stockEnabled => throw _privateConstructorUsedError;
   bool get grainEnabled => throw _privateConstructorUsedError;
@@ -82,9 +86,11 @@ abstract class $EditStateCopyWith<$Res> {
     String proxyFilePath,
     BasicEditorSettings basicEditor,
     LensProfile? lensProfile,
+    CameraProfile? cameraProfile,
     FilmStock? filmStock,
     GrainSettings grain,
     BloomSettings bloom,
+    bool cameraEnabled,
     bool lensEnabled,
     bool stockEnabled,
     bool grainEnabled,
@@ -97,6 +103,7 @@ abstract class $EditStateCopyWith<$Res> {
 
   $BasicEditorSettingsCopyWith<$Res> get basicEditor;
   $LensProfileCopyWith<$Res>? get lensProfile;
+  $CameraProfileCopyWith<$Res>? get cameraProfile;
   $FilmStockCopyWith<$Res>? get filmStock;
   $GrainSettingsCopyWith<$Res> get grain;
   $BloomSettingsCopyWith<$Res> get bloom;
@@ -122,9 +129,11 @@ class _$EditStateCopyWithImpl<$Res, $Val extends EditState>
     Object? proxyFilePath = null,
     Object? basicEditor = null,
     Object? lensProfile = freezed,
+    Object? cameraProfile = freezed,
     Object? filmStock = freezed,
     Object? grain = null,
     Object? bloom = null,
+    Object? cameraEnabled = null,
     Object? lensEnabled = null,
     Object? stockEnabled = null,
     Object? grainEnabled = null,
@@ -156,6 +165,10 @@ class _$EditStateCopyWithImpl<$Res, $Val extends EditState>
                 ? _value.lensProfile
                 : lensProfile // ignore: cast_nullable_to_non_nullable
                       as LensProfile?,
+            cameraProfile: freezed == cameraProfile
+                ? _value.cameraProfile
+                : cameraProfile // ignore: cast_nullable_to_non_nullable
+                      as CameraProfile?,
             filmStock: freezed == filmStock
                 ? _value.filmStock
                 : filmStock // ignore: cast_nullable_to_non_nullable
@@ -168,6 +181,10 @@ class _$EditStateCopyWithImpl<$Res, $Val extends EditState>
                 ? _value.bloom
                 : bloom // ignore: cast_nullable_to_non_nullable
                       as BloomSettings,
+            cameraEnabled: null == cameraEnabled
+                ? _value.cameraEnabled
+                : cameraEnabled // ignore: cast_nullable_to_non_nullable
+                      as bool,
             lensEnabled: null == lensEnabled
                 ? _value.lensEnabled
                 : lensEnabled // ignore: cast_nullable_to_non_nullable
@@ -233,6 +250,20 @@ class _$EditStateCopyWithImpl<$Res, $Val extends EditState>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
+  $CameraProfileCopyWith<$Res>? get cameraProfile {
+    if (_value.cameraProfile == null) {
+      return null;
+    }
+
+    return $CameraProfileCopyWith<$Res>(_value.cameraProfile!, (value) {
+      return _then(_value.copyWith(cameraProfile: value) as $Val);
+    });
+  }
+
+  /// Create a copy of EditState
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
   $FilmStockCopyWith<$Res>? get filmStock {
     if (_value.filmStock == null) {
       return null;
@@ -279,9 +310,11 @@ abstract class _$$EditStateImplCopyWith<$Res>
     String proxyFilePath,
     BasicEditorSettings basicEditor,
     LensProfile? lensProfile,
+    CameraProfile? cameraProfile,
     FilmStock? filmStock,
     GrainSettings grain,
     BloomSettings bloom,
+    bool cameraEnabled,
     bool lensEnabled,
     bool stockEnabled,
     bool grainEnabled,
@@ -296,6 +329,8 @@ abstract class _$$EditStateImplCopyWith<$Res>
   $BasicEditorSettingsCopyWith<$Res> get basicEditor;
   @override
   $LensProfileCopyWith<$Res>? get lensProfile;
+  @override
+  $CameraProfileCopyWith<$Res>? get cameraProfile;
   @override
   $FilmStockCopyWith<$Res>? get filmStock;
   @override
@@ -323,9 +358,11 @@ class __$$EditStateImplCopyWithImpl<$Res>
     Object? proxyFilePath = null,
     Object? basicEditor = null,
     Object? lensProfile = freezed,
+    Object? cameraProfile = freezed,
     Object? filmStock = freezed,
     Object? grain = null,
     Object? bloom = null,
+    Object? cameraEnabled = null,
     Object? lensEnabled = null,
     Object? stockEnabled = null,
     Object? grainEnabled = null,
@@ -357,6 +394,10 @@ class __$$EditStateImplCopyWithImpl<$Res>
             ? _value.lensProfile
             : lensProfile // ignore: cast_nullable_to_non_nullable
                   as LensProfile?,
+        cameraProfile: freezed == cameraProfile
+            ? _value.cameraProfile
+            : cameraProfile // ignore: cast_nullable_to_non_nullable
+                  as CameraProfile?,
         filmStock: freezed == filmStock
             ? _value.filmStock
             : filmStock // ignore: cast_nullable_to_non_nullable
@@ -369,6 +410,10 @@ class __$$EditStateImplCopyWithImpl<$Res>
             ? _value.bloom
             : bloom // ignore: cast_nullable_to_non_nullable
                   as BloomSettings,
+        cameraEnabled: null == cameraEnabled
+            ? _value.cameraEnabled
+            : cameraEnabled // ignore: cast_nullable_to_non_nullable
+                  as bool,
         lensEnabled: null == lensEnabled
             ? _value.lensEnabled
             : lensEnabled // ignore: cast_nullable_to_non_nullable
@@ -415,9 +460,11 @@ class _$EditStateImpl extends _EditState {
     required this.proxyFilePath,
     this.basicEditor = const BasicEditorSettings(),
     this.lensProfile,
+    this.cameraProfile,
     this.filmStock,
     this.grain = const GrainSettings(),
     this.bloom = const BloomSettings(),
+    this.cameraEnabled = true,
     this.lensEnabled = true,
     this.stockEnabled = true,
     this.grainEnabled = true,
@@ -452,6 +499,10 @@ class _$EditStateImpl extends _EditState {
   @override
   final LensProfile? lensProfile;
 
+  /// Active camera profile. Null means the camera layer is bypassed.
+  @override
+  final CameraProfile? cameraProfile;
+
   /// Active film stock. Null means the stock layer is bypassed.
   @override
   final FilmStock? filmStock;
@@ -466,6 +517,9 @@ class _$EditStateImpl extends _EditState {
   @JsonKey()
   final BloomSettings bloom;
   // — Layer toggles —
+  @override
+  @JsonKey()
+  final bool cameraEnabled;
   @override
   @JsonKey()
   final bool lensEnabled;
@@ -500,7 +554,7 @@ class _$EditStateImpl extends _EditState {
 
   @override
   String toString() {
-    return 'EditState(originalFilePath: $originalFilePath, workingFilePath: $workingFilePath, proxyFilePath: $proxyFilePath, basicEditor: $basicEditor, lensProfile: $lensProfile, filmStock: $filmStock, grain: $grain, bloom: $bloom, lensEnabled: $lensEnabled, stockEnabled: $stockEnabled, grainEnabled: $grainEnabled, bloomEnabled: $bloomEnabled, basicEditorEnabled: $basicEditorEnabled, importProfile: $importProfile, lumenProxyPath: $lumenProxyPath, generatedFilePath: $generatedFilePath)';
+    return 'EditState(originalFilePath: $originalFilePath, workingFilePath: $workingFilePath, proxyFilePath: $proxyFilePath, basicEditor: $basicEditor, lensProfile: $lensProfile, cameraProfile: $cameraProfile, filmStock: $filmStock, grain: $grain, bloom: $bloom, cameraEnabled: $cameraEnabled, lensEnabled: $lensEnabled, stockEnabled: $stockEnabled, grainEnabled: $grainEnabled, bloomEnabled: $bloomEnabled, basicEditorEnabled: $basicEditorEnabled, importProfile: $importProfile, lumenProxyPath: $lumenProxyPath, generatedFilePath: $generatedFilePath)';
   }
 
   @override
@@ -518,10 +572,14 @@ class _$EditStateImpl extends _EditState {
                 other.basicEditor == basicEditor) &&
             (identical(other.lensProfile, lensProfile) ||
                 other.lensProfile == lensProfile) &&
+            (identical(other.cameraProfile, cameraProfile) ||
+                other.cameraProfile == cameraProfile) &&
             (identical(other.filmStock, filmStock) ||
                 other.filmStock == filmStock) &&
             (identical(other.grain, grain) || other.grain == grain) &&
             (identical(other.bloom, bloom) || other.bloom == bloom) &&
+            (identical(other.cameraEnabled, cameraEnabled) ||
+                other.cameraEnabled == cameraEnabled) &&
             (identical(other.lensEnabled, lensEnabled) ||
                 other.lensEnabled == lensEnabled) &&
             (identical(other.stockEnabled, stockEnabled) ||
@@ -549,9 +607,11 @@ class _$EditStateImpl extends _EditState {
     proxyFilePath,
     basicEditor,
     lensProfile,
+    cameraProfile,
     filmStock,
     grain,
     bloom,
+    cameraEnabled,
     lensEnabled,
     stockEnabled,
     grainEnabled,
@@ -583,9 +643,11 @@ abstract class _EditState extends EditState {
     required final String proxyFilePath,
     final BasicEditorSettings basicEditor,
     final LensProfile? lensProfile,
+    final CameraProfile? cameraProfile,
     final FilmStock? filmStock,
     final GrainSettings grain,
     final BloomSettings bloom,
+    final bool cameraEnabled,
     final bool lensEnabled,
     final bool stockEnabled,
     final bool grainEnabled,
@@ -620,6 +682,10 @@ abstract class _EditState extends EditState {
   @override
   LensProfile? get lensProfile;
 
+  /// Active camera profile. Null means the camera layer is bypassed.
+  @override
+  CameraProfile? get cameraProfile;
+
   /// Active film stock. Null means the stock layer is bypassed.
   @override
   FilmStock? get filmStock;
@@ -631,6 +697,8 @@ abstract class _EditState extends EditState {
   /// Bloom and halation parameters.
   @override
   BloomSettings get bloom; // — Layer toggles —
+  @override
+  bool get cameraEnabled;
   @override
   bool get lensEnabled;
   @override

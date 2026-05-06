@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'basic_editor_settings.dart';
 import 'bloom_settings.dart';
+import 'camera_profile.dart';
 import 'film_stock.dart';
 import 'grain_settings.dart';
 import 'import_profile.dart';
@@ -34,6 +35,9 @@ abstract class EditState with _$EditState {
     /// Active lens profile. Null means lens layer is bypassed.
     LensProfile? lensProfile,
 
+    /// Active camera profile. Null means the camera layer is bypassed.
+    CameraProfile? cameraProfile,
+
     /// Active film stock. Null means the stock layer is bypassed.
     FilmStock? filmStock,
 
@@ -45,6 +49,7 @@ abstract class EditState with _$EditState {
 
     // — Layer toggles —
 
+    @Default(true) bool cameraEnabled,
     @Default(true) bool lensEnabled,
     @Default(true) bool stockEnabled,
     @Default(true) bool grainEnabled,

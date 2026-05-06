@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gal/gal.dart';
-import '../../../core/data/simulation_presets.dart';
+import '../../../core/data/camera_profiles.dart';
 import '../../../core/data/film_stocks.dart';
+import '../../../core/data/lens_profiles.dart';
 import '../../../core/models/simulation_state.dart';
+import '../../../core/providers/edit_state_provider.dart';
 import '../../../core/providers/simulation_provider.dart';
 import '../../../shared/theme/lumen_theme.dart';
 
@@ -22,7 +24,7 @@ class ModSimulation extends ConsumerWidget {
           // Camera picker
           _SectionLabel(label: 'CAMERA'),
           _GearStrip(
-            items: kSimulationCameras.map((c) => c.shortName).toList(),
+            items: kCameraProfiles.map((c) => c.name.toUpperCase()).toList(),
             selectedIndex: sim.cameraIndex,
             onSelect: (i) {
               HapticFeedback.selectionClick();
@@ -35,7 +37,7 @@ class ModSimulation extends ConsumerWidget {
           // Lens picker
           _SectionLabel(label: 'LENS'),
           _GearStrip(
-            items: kSimulationLenses.map((l) => l.name).toList(),
+            items: kLensProfiles.map((l) => l.name.toUpperCase()).toList(),
             selectedIndex: sim.lensIndex,
             onSelect: (i) {
               HapticFeedback.selectionClick();
@@ -48,7 +50,7 @@ class ModSimulation extends ConsumerWidget {
           // Film stock picker (first item = "NONE")
           _SectionLabel(label: 'FILM'),
           _GearStrip(
-            items: ['NONE', ...kFilmStocks.map((s) => s.name)],
+            items: ['NONE', ...kFilmStocks.map((s) => s.name.toUpperCase())],
             selectedIndex: sim.stockIndex + 1, // -1 (none) → 0
             onSelect: (i) {
               HapticFeedback.selectionClick();
@@ -56,7 +58,12 @@ class ModSimulation extends ConsumerWidget {
             },
           ),
 
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
+
+          // Strength slider
+          _StrengthSlider(strength: sim.strength),
+
+          const SizedBox(height: 6),
 
           // Result / simulate area
           Padding(
@@ -146,6 +153,65 @@ class _GearStrip extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// STRENGTH SLIDER
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _StrengthSlider extends ConsumerWidget {
+  const _StrengthSlider({required this.strength});
+  final double strength;
+
+  String _label(double v) {
+    if (v < 0.45) return 'SUBTLE';
+    if (v < 0.70) return 'MODERATE';
+    if (v < 0.88) return 'STRONG';
+    return 'INTENSE';
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Text('STRENGTH',
+              style: monoStyle(size: 8, letterSpacing: 2.5, color: kMute)),
+          Expanded(
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 1.5,
+                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
+                activeTrackColor: kAmber,
+                inactiveTrackColor: kAmber.withValues(alpha: 0.18),
+                thumbColor: kAmber,
+                overlayColor: kAmber.withValues(alpha: 0.12),
+              ),
+              child: Slider(
+                value: strength,
+                min: 0.30,
+                max: 0.95,
+                onChanged: (v) {
+                  ref.read(simulationProvider.notifier).setStrength(v);
+                },
+                onChangeEnd: (_) => HapticFeedback.selectionClick(),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 52,
+            child: Text(
+              _label(strength),
+              style: monoStyle(size: 7, letterSpacing: 1.5, color: kAmber),
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -317,7 +383,30 @@ class _ResultView extends ConsumerWidget {
             ),
             const SizedBox(width: 8),
             Expanded(
-              flex: 2,
+              child: GestureDetector(
+                onTap: () => _useInEditor(ref),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 11),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                        color: kAmber.withValues(alpha: 0.55), width: 0.5),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'USE IN EDITOR',
+                      style: monoStyle(
+                        size: 9,
+                        color: kAmber,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
               child: GestureDetector(
                 onTap: () => _saveToDevice(context),
                 child: Container(
@@ -328,7 +417,7 @@ class _ResultView extends ConsumerWidget {
                   ),
                   child: Center(
                     child: Text(
-                      'SAVE TO LUMEN',
+                      'SAVE',
                       style: monoStyle(
                         size: 9,
                         color: const Color(0xFF1A0F06),
@@ -344,6 +433,12 @@ class _ResultView extends ConsumerWidget {
         const SizedBox(height: 8),
       ],
     );
+  }
+
+  void _useInEditor(WidgetRef ref) {
+    HapticFeedback.mediumImpact();
+    ref.read(editStateProvider.notifier).loadGeneratedResult(resultPath);
+    ref.read(simulationProvider.notifier).dismiss();
   }
 
   Future<void> _saveToDevice(BuildContext context) async {

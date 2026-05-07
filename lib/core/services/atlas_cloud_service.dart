@@ -6,22 +6,28 @@ import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 
-/// Calls the Atlas Cloud Flux Kontext Dev image-to-image endpoint.
+/// Calls the Atlas Cloud image generation API (async submit → poll pattern).
 ///
-/// TODO: Verify the exact endpoint path and request/response schema against
-///       the Atlas Cloud docs at atlascloud.ai — adjust [_kEndpoint] and
-///       [_parseResultBytes] if their convention differs from the pattern below.
+/// Submit: POST /api/v1/model/generateImage → prediction ID
+/// Poll:   GET  /api/v1/model/prediction/{id} every 2s until completed/failed
 class AtlasCloudService {
-  static const String _kEndpoint =
-      'https://api.atlascloud.ai/v1/image-to-image';
+  static const String _kBase = 'https://api.atlascloud.ai/api/v1';
+  static const String _kSubmit = '$_kBase/model/generateImage';
+  static const String _kPoll = '$_kBase/model/prediction';
+
+  static const int _kPollIntervalMs = 2000;
+  static const int _kTimeoutMs = 120000; // 2 minutes
 
   String? get _apiKey => dotenv.env['ATLAS_API_KEY'];
 
-  /// Sends [imagePath] (JPEG/PNG) with [prompt] to Atlas Cloud and returns the
-  /// local path of the result image saved in the app's temp directory.
-  ///
-  /// Throws [AtlasCloudException] on API errors or missing API key.
-  Future<String> simulate({
+  Map<String, String> get _headers => {
+        'Authorization': 'Bearer ${_apiKey ?? ''}',
+        'Content-Type': 'application/json',
+      };
+
+  /// Submits an img2img job to Atlas Cloud and polls until the result is ready.
+  /// Returns the local file path of the downloaded result image.
+  Future<String> simulateWithUrlFallback({
     required String imagePath,
     required String prompt,
     double strength = 0.75,
@@ -34,108 +40,109 @@ class AtlasCloudService {
 
     final imageBytes = await File(imagePath).readAsBytes();
     final base64Image = base64Encode(imageBytes);
-    final ext = p.extension(imagePath).replaceFirst('.', '');
+    final ext = p.extension(imagePath).replaceFirst('.', '').toLowerCase();
     final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
 
-    final body = jsonEncode({
-      'model': 'flux-kontext-dev',
-      'prompt': prompt,
-      'input_image': 'data:$mimeType;base64,$base64Image',
-      'strength': strength,
-      'guidance_scale': 3.5,
-      'num_inference_steps': 28,
-      'output_format': 'jpeg',
-    });
-
-    final response = await http.post(
-      Uri.parse(_kEndpoint),
-      headers: {
-        'Authorization': 'Bearer $key',
-        'Content-Type': 'application/json',
-      },
-      body: body,
+    // Step 1: submit
+    final submitResponse = await http.post(
+      Uri.parse(_kSubmit),
+      headers: _headers,
+      body: jsonEncode({
+        'model': 'black-forest-labs/flux-kontext-dev',
+        'image': 'data:$mimeType;base64,$base64Image',
+        'prompt': prompt,
+        'strength': strength,
+        'guidance_scale': 3.5,
+        'num_inference_steps': 28,
+        'output_format': 'jpeg',
+      }),
     );
 
-    if (response.statusCode != 200 && response.statusCode != 201) {
+    if (submitResponse.statusCode != 200 && submitResponse.statusCode != 201) {
       throw AtlasCloudException(
-          'Atlas Cloud returned ${response.statusCode}: ${response.body}');
+          'Atlas Cloud submit failed ${submitResponse.statusCode}: ${submitResponse.body}');
     }
 
-    final resultBytes = _parseResultBytes(response);
-    return _saveResult(resultBytes);
-  }
+    final submitJson = jsonDecode(submitResponse.body) as Map<String, dynamic>;
+    final predictionId = _extractPredictionId(submitJson);
 
-  /// Parses the response body to raw image bytes.
-  ///
-  /// Handles two common patterns:
-  ///   1. JSON with `images[0].url` → downloads the image
-  ///   2. JSON with `output` as a base64 data URI
-  ///   3. Raw binary response body
-  Uint8List _parseResultBytes(http.Response response) {
-    final contentType = response.headers['content-type'] ?? '';
+    // Step 2: poll
+    final deadline = DateTime.now().add(const Duration(milliseconds: _kTimeoutMs));
+    while (DateTime.now().isBefore(deadline)) {
+      await Future.delayed(const Duration(milliseconds: _kPollIntervalMs));
 
-    if (contentType.contains('application/json')) {
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final pollResponse = await http.get(
+        Uri.parse('$_kPoll/$predictionId'),
+        headers: _headers,
+      );
 
-      // Pattern 1 — { "images": [{"url": "...", ...}] }
-      if (json['images'] is List) {
-        final images = json['images'] as List;
-        if (images.isNotEmpty) {
-          final first = images.first as Map<String, dynamic>;
-          final url = first['url'] as String?;
-          if (url != null) {
-            // Synchronous download not ideal but keeps the method simple —
-            // the caller already awaits in an async context.
-            throw _UrlResultException(url);
-          }
-          final b64 = first['content'] as String? ?? first['data'] as String?;
-          if (b64 != null) return base64Decode(_stripDataUri(b64));
-        }
+      if (pollResponse.statusCode != 200) {
+        throw AtlasCloudException(
+            'Atlas Cloud poll failed ${pollResponse.statusCode}: ${pollResponse.body}');
       }
 
-      // Pattern 2 — { "output": "data:image/jpeg;base64,..." }
-      final output = json['output'] as String?;
-      if (output != null) return base64Decode(_stripDataUri(output));
+      final pollJson = jsonDecode(pollResponse.body) as Map<String, dynamic>;
+      final status = pollJson['status'] as String? ?? '';
 
-      throw AtlasCloudException(
-          'Unexpected JSON response from Atlas Cloud: ${response.body}');
+      if (status == 'completed') {
+        final url = _extractOutputUrl(pollJson);
+        return _downloadAndSave(url);
+      }
+
+      if (status == 'failed') {
+        final error = pollJson['error'] ?? pollJson['message'] ?? 'unknown error';
+        throw AtlasCloudException('Atlas Cloud generation failed: $error');
+      }
+      // status == 'processing' → keep polling
     }
 
-    // Pattern 3 — raw binary
-    return response.bodyBytes;
+    throw const AtlasCloudException('Atlas Cloud timed out after 2 minutes');
   }
 
-  String _stripDataUri(String s) {
-    final comma = s.indexOf(',');
-    return comma >= 0 ? s.substring(comma + 1) : s;
+  String _extractPredictionId(Map<String, dynamic> json) {
+    // { "data": { "id": "..." } }  or  { "id": "..." }
+    final data = json['data'];
+    if (data is Map<String, dynamic>) {
+      final id = data['id'];
+      if (id is String && id.isNotEmpty) return id;
+    }
+    final id = json['id'];
+    if (id is String && id.isNotEmpty) return id;
+    throw AtlasCloudException(
+        'Could not find prediction ID in response: $json');
   }
 
-  Future<String> _saveResult(Uint8List bytes) async {
+  String _extractOutputUrl(Map<String, dynamic> json) {
+    // { "outputs": ["https://..."] }  or  { "urls": { "output": "..." } }
+    final outputs = json['outputs'];
+    if (outputs is List && outputs.isNotEmpty) {
+      final first = outputs.first;
+      if (first is String && first.isNotEmpty) return first;
+    }
+    final urls = json['urls'];
+    if (urls is Map<String, dynamic>) {
+      final url = urls['output'];
+      if (url is String && url.isNotEmpty) return url;
+    }
+    throw AtlasCloudException(
+        'Could not find output URL in completed response: $json');
+  }
+
+  Future<String> _downloadAndSave(String url) async {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode != 200) {
+      throw AtlasCloudException(
+          'Failed to download result image from $url (${response.statusCode})');
+    }
+    return _saveBytes(response.bodyBytes);
+  }
+
+  Future<String> _saveBytes(Uint8List bytes) async {
     final tmp = await getTemporaryDirectory();
-    final name =
-        'sim_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final name = 'sim_${DateTime.now().millisecondsSinceEpoch}.jpg';
     final file = File(p.join(tmp.path, name));
     await file.writeAsBytes(bytes);
     return file.path;
-  }
-
-  /// Overload that handles URL-based results by downloading the image first.
-  Future<String> simulateWithUrlFallback({
-    required String imagePath,
-    required String prompt,
-    double strength = 0.75,
-  }) async {
-    try {
-      return await simulate(
-          imagePath: imagePath, prompt: prompt, strength: strength);
-    } on _UrlResultException catch (e) {
-      final response = await http.get(Uri.parse(e.url));
-      if (response.statusCode != 200) {
-        throw AtlasCloudException(
-            'Failed to download result image from ${e.url}');
-      }
-      return _saveResult(response.bodyBytes);
-    }
   }
 }
 
@@ -145,9 +152,4 @@ class AtlasCloudException implements Exception {
 
   @override
   String toString() => 'AtlasCloudException: $message';
-}
-
-class _UrlResultException implements Exception {
-  const _UrlResultException(this.url);
-  final String url;
 }

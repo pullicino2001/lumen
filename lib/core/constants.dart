@@ -25,7 +25,7 @@ const double kAdjustmentMax = 100.0;
 const double kDefaultTemperature = 5500.0;
 
 /// Asset paths.
-const String kAssetLuts = 'assets/luts/';
 const String kAssetLensProfiles = 'assets/lens_profiles/';
 const String kAssetShaders = 'assets/shaders/';
 const String kAssetAiModelConfig = 'assets/config/ai_model_config.json';
+const String kAssetDeviceTiers = 'assets/config/device_tiers.json';

@@ -68,5 +68,56 @@ abstract class BasicEditorSettings
       vibrance == 0.0;
 
   @override
-  String toPromptFragment() => '';
+  String toPromptFragment() {
+    if (isNeutral) return '';
+    final parts = <String>[];
+
+    if (exposure <= -2.0) {
+      parts.add('heavily underexposed, dark');
+    } else if (exposure <= -0.8) {
+      parts.add('underexposed, moody');
+    } else if (exposure >= 2.0) {
+      parts.add('heavily overexposed, bright');
+    } else if (exposure >= 0.8) {
+      parts.add('overexposed, airy');
+    }
+
+    if (contrast >= 40) {
+      parts.add('high contrast');
+    } else if (contrast <= -40) {
+      parts.add('flat, low contrast');
+    }
+
+    if (highlights <= -40) {
+      parts.add('recovered highlights');
+    } else if (highlights >= 40) {
+      parts.add('blown highlights');
+    }
+
+    if (shadows <= -40) {
+      parts.add('crushed blacks');
+    } else if (shadows >= 40) {
+      parts.add('lifted shadows');
+    }
+
+    if (temperature <= 3500) {
+      parts.add('cool tones, daylight white balance');
+    } else if (temperature >= 8000) {
+      parts.add('warm tones, golden hour light');
+    }
+
+    if (saturation >= 40) {
+      parts.add('vivid colors');
+    } else if (saturation <= -40) {
+      parts.add('desaturated');
+    } else if (saturation <= -80) {
+      parts.add('monochromatic');
+    }
+
+    if (clarity >= 30) {
+      parts.add('high clarity, strong texture');
+    }
+
+    return parts.join(', ');
+  }
 }

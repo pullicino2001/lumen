@@ -5,18 +5,28 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'ai_model_config_service.dart';
 
 /// Calls the Atlas Cloud image generation API (async submit → poll pattern).
 ///
 /// Submit: POST /api/v1/model/generateImage → prediction ID
 /// Poll:   GET  /api/v1/model/prediction/{id} every 2s until completed/failed
+///
+/// Model ID, endpoint, and parameters are read from [AiModelConfigService]
+/// when provided; the hardcoded Atlas defaults are used as fallback.
 class AtlasCloudService {
-  static const String _kBase = 'https://api.atlascloud.ai/api/v1';
-  static const String _kSubmit = '$_kBase/model/generateImage';
-  static const String _kPoll = '$_kBase/model/prediction';
+  AtlasCloudService({AiModelConfigService? modelConfig})
+      : _modelConfig = modelConfig;
+
+  static const String _kDefaultBase = 'https://api.atlascloud.ai/api/v1';
+  static const String _kDefaultSubmitPath = '/model/generateImage';
+  static const String _kDefaultPollPath = '/model/prediction';
+  static const String _kDefaultModel = 'black-forest-labs/flux-kontext-dev';
 
   static const int _kPollIntervalMs = 2000;
   static const int _kTimeoutMs = 120000; // 2 minutes
+
+  final AiModelConfigService? _modelConfig;
 
   String? get _apiKey => dotenv.env['ATLAS_API_KEY'];
 
@@ -25,12 +35,48 @@ class AtlasCloudService {
         'Content-Type': 'application/json',
       };
 
-  /// Submits an img2img job to Atlas Cloud and polls until the result is ready.
+  String get _submitUrl {
+    final cfg = _modelConfig?.generation;
+    if (cfg != null && cfg.endpoint.isNotEmpty) return cfg.endpoint;
+    return '$_kDefaultBase$_kDefaultSubmitPath';
+  }
+
+  String get _pollBase {
+    final cfg = _modelConfig?.generation;
+    if (cfg != null && cfg.endpoint.isNotEmpty) {
+      // Derive the poll URL from the endpoint base.
+      final uri = Uri.parse(cfg.endpoint);
+      return '${uri.scheme}://${uri.host}$_kDefaultPollPath';
+    }
+    return '$_kDefaultBase$_kDefaultPollPath';
+  }
+
+  String get _modelId {
+    final cfg = _modelConfig?.generation;
+    return (cfg != null && cfg.modelId.isNotEmpty) ? cfg.modelId : _kDefaultModel;
+  }
+
+  Map<String, dynamic> get _defaultParameters {
+    final cfg = _modelConfig?.generation;
+    if (cfg != null && cfg.parameters.isNotEmpty) return cfg.parameters;
+    return {
+      'guidance_scale': 3.5,
+      'num_inference_steps': 28,
+      'output_format': 'jpeg',
+    };
+  }
+
+  /// Submits an img2img job and polls until the result is ready.
+  ///
+  /// Pass an [isCancelled] callback to support cooperative cancellation —
+  /// the poll loop checks it before each poll and stops if it returns true.
+  ///
   /// Returns the local file path of the downloaded result image.
   Future<String> simulateWithUrlFallback({
     required String imagePath,
     required String prompt,
     double strength = 0.75,
+    bool Function()? isCancelled,
   }) async {
     final key = _apiKey;
     if (key == null || key.isEmpty || key == 'your_atlas_cloud_api_key_here') {
@@ -44,18 +90,18 @@ class AtlasCloudService {
     final mimeType = ext == 'png' ? 'image/png' : 'image/jpeg';
 
     // Step 1: submit
+    final submitBody = <String, dynamic>{
+      'model': _modelId,
+      'image': 'data:$mimeType;base64,$base64Image',
+      'prompt': prompt,
+      'strength': strength,
+      ..._defaultParameters,
+    };
+
     final submitResponse = await http.post(
-      Uri.parse(_kSubmit),
+      Uri.parse(_submitUrl),
       headers: _headers,
-      body: jsonEncode({
-        'model': 'black-forest-labs/flux-kontext-dev',
-        'image': 'data:$mimeType;base64,$base64Image',
-        'prompt': prompt,
-        'strength': strength,
-        'guidance_scale': 3.5,
-        'num_inference_steps': 28,
-        'output_format': 'jpeg',
-      }),
+      body: jsonEncode(submitBody),
     );
 
     if (submitResponse.statusCode != 200 && submitResponse.statusCode != 201) {
@@ -66,13 +112,21 @@ class AtlasCloudService {
     final submitJson = jsonDecode(submitResponse.body) as Map<String, dynamic>;
     final predictionId = _extractPredictionId(submitJson);
 
-    // Step 2: poll
+    // Step 2: poll with cancellation support
     final deadline = DateTime.now().add(const Duration(milliseconds: _kTimeoutMs));
     while (DateTime.now().isBefore(deadline)) {
+      if (isCancelled != null && isCancelled()) {
+        throw const AtlasCloudCancelledException();
+      }
+
       await Future.delayed(const Duration(milliseconds: _kPollIntervalMs));
 
+      if (isCancelled != null && isCancelled()) {
+        throw const AtlasCloudCancelledException();
+      }
+
       final pollResponse = await http.get(
-        Uri.parse('$_kPoll/$predictionId'),
+        Uri.parse('$_pollBase/$predictionId'),
         headers: _headers,
       );
 
@@ -100,7 +154,6 @@ class AtlasCloudService {
   }
 
   String _extractPredictionId(Map<String, dynamic> json) {
-    // { "data": { "id": "..." } }  or  { "id": "..." }
     final data = json['data'];
     if (data is Map<String, dynamic>) {
       final id = data['id'];
@@ -113,7 +166,6 @@ class AtlasCloudService {
   }
 
   String _extractOutputUrl(Map<String, dynamic> json) {
-    // { "outputs": ["https://..."] }  or  { "urls": { "output": "..." } }
     final outputs = json['outputs'];
     if (outputs is List && outputs.isNotEmpty) {
       final first = outputs.first;
@@ -152,4 +204,12 @@ class AtlasCloudException implements Exception {
 
   @override
   String toString() => 'AtlasCloudException: $message';
+}
+
+/// Thrown when a generation job is cancelled via the [isCancelled] callback.
+class AtlasCloudCancelledException implements Exception {
+  const AtlasCloudCancelledException();
+
+  @override
+  String toString() => 'AtlasCloudCancelledException: job was cancelled';
 }

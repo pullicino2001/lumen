@@ -649,8 +649,7 @@ class _TopNav extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 2),
-              Text('ROLL 03 · FRAME 07',
-                  style: monoStyle(size: 8, letterSpacing: 2.5)),
+              _SessionLabel(),
             ],
           ),
           const Spacer(),
@@ -686,6 +685,22 @@ class _TopNav extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// Shows the import date of the active gallery entry (e.g. "12 · 05 · 2026").
+/// Falls back to an empty widget when no entry is loaded yet.
+class _SessionLabel extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final entryId = ref.watch(currentEntryIdProvider);
+    if (entryId == null) return const SizedBox.shrink();
+    final ms = int.tryParse(entryId);
+    if (ms == null) return const SizedBox.shrink();
+    final d = DateTime.fromMillisecondsSinceEpoch(ms);
+    final label =
+        '${d.day.toString().padLeft(2, '0')} · ${d.month.toString().padLeft(2, '0')} · ${d.year}';
+    return Text(label, style: monoStyle(size: 8, letterSpacing: 2.5));
   }
 }
 

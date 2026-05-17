@@ -1,0 +1,13 @@
+{
+  "full": [
+    "pixel 8 pro", "pixel 9 pro", "pixel 9 pro xl", "pixel 9 pro fold",
+    "pixel fold",
+    "sm-s911", "sm-s916", "sm-s918",
+    "sm-s921", "sm-s926", "sm-s928",
+    "sm-s931", "sm-s936", "sm-s938",
+    "sm-f731", "sm-f946", "sm-f956"
+  ],
+  "basic": [
+    "android sdk"
+  ]
+}

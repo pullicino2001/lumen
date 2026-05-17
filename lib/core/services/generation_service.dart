@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/edit_state.dart';
+import 'ai_model_config_service.dart';
 import 'atlas_cloud_service.dart';
 import 'generation_prompt_builder.dart';
 
@@ -16,20 +17,31 @@ class GenerationService {
   final AtlasCloudService _atlas;
   final GenerationPromptBuilder _builder;
 
-  Future<String> generate(EditState state, {double strength = 0.75}) async {
+  Future<String> generate(
+    EditState state, {
+    double strength = 0.75,
+    bool Function()? isCancelled,
+  }) async {
     final prompt = _builder.build(state);
     return _atlas.simulateWithUrlFallback(
       imagePath: state.proxyFilePath,
       prompt: prompt,
       strength: strength,
+      isCancelled: isCancelled,
     );
   }
 }
 
-final atlasCloudServiceProvider = Provider<AtlasCloudService>(
-  (_) => AtlasCloudService(),
-);
+final aiModelConfigServiceProvider = FutureProvider<AiModelConfigService>((ref) {
+  return AiModelConfigService.create();
+});
 
-final generationServiceProvider = Provider<GenerationService>((ref) {
-  return GenerationService(atlasService: ref.watch(atlasCloudServiceProvider));
+final atlasCloudServiceProvider = FutureProvider<AtlasCloudService>((ref) async {
+  final config = await ref.watch(aiModelConfigServiceProvider.future);
+  return AtlasCloudService(modelConfig: config);
+});
+
+final generationServiceProvider = FutureProvider<GenerationService>((ref) async {
+  final atlas = await ref.watch(atlasCloudServiceProvider.future);
+  return GenerationService(atlasService: atlas);
 });

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../models/edit_state.dart';
@@ -7,6 +8,7 @@ import '../models/gallery_entry.dart';
 
 class GalleryService {
   static const _indexFile = 'index.json';
+  static final _log = Logger();
 
   Future<Directory> _galleryDir() async {
     final docs = await getApplicationDocumentsDirectory();
@@ -29,7 +31,10 @@ class GalleryService {
           .map((e) => GalleryEntry.fromJson(
               Map<String, dynamic>.from(e as Map)))
           .toList();
-    } catch (_) {
+    } catch (e, st) {
+      _log.e('Failed to load gallery index — index may be corrupt', error: e, stackTrace: st);
+      // Rename the corrupt file so it can be inspected and we start fresh.
+      try { await file.rename('${file.path}.corrupt'); } catch (_) {}
       return [];
     }
   }

@@ -17,13 +17,6 @@ class SubscriptionNotifier extends Notifier<Set<String>> {
       hasEntitlement(kEntitlementPro) || hasEntitlement(kEntitlementProMax);
 
   bool get isProMax => hasEntitlement(kEntitlementProMax);
-
-  // — Dev helpers — remove before release —
-
-  void devGrantPro() => state = {...state, kEntitlementPro};
-  void devGrantProMax() =>
-      state = {...state, kEntitlementPro, kEntitlementProMax};
-  void devRevokeAll() => state = const {};
 }
 
 final subscriptionProvider =

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:logger/logger.dart';
 import '../models/edit_state.dart';
 import '../models/basic_editor_settings.dart';
 import '../models/bloom_settings.dart';
@@ -15,12 +16,18 @@ final undoAvailabilityProvider =
   (ref) => (canUndo: false, canRedo: false),
 );
 
+/// The gallery entry ID of the photo currently open in the editor.
+/// Null when no photo is loaded or the entry has not been persisted yet.
+final currentEntryIdProvider = StateProvider<String?>((ref) => null);
+
 /// Manages the full [EditState] for the active edit session.
 ///
 /// - All edits are auto-saved to the current gallery entry (debounced 600 ms).
 /// - Slider-type edits (updateBasicEditor, updateGrain, updateBloom) batch into
 ///   a single undo step per gesture; discrete operations push immediately.
 class EditStateNotifier extends Notifier<EditState?> {
+  static final _log = Logger();
+
   final List<EditState> _undoStack = [];
   final List<EditState> _redoStack = [];
 
@@ -32,11 +39,20 @@ class EditStateNotifier extends Notifier<EditState?> {
   Timer? _undoDebounceTimer;
 
   @override
-  EditState? build() => null;
+  EditState? build() {
+    ref.onDispose(() {
+      _saveTimer?.cancel();
+      _undoDebounceTimer?.cancel();
+    });
+    return null;
+  }
 
   // ── Entry tracking ────────────────────────────────────────────────────────
 
-  void setEntryId(String? id) => _entryId = id;
+  void setEntryId(String? id) {
+    _entryId = id;
+    ref.read(currentEntryIdProvider.notifier).state = id;
+  }
 
   // ── Undo / Redo ───────────────────────────────────────────────────────────
 
@@ -117,7 +133,9 @@ class EditStateNotifier extends Notifier<EditState?> {
         final updated =
             await ref.read(galleryServiceProvider).updateCurrentState(id, s);
         ref.read(galleryProvider.notifier).updateEntry(updated);
-      } catch (_) {}
+      } catch (e, st) {
+        _log.e('Auto-save failed for entry $id', error: e, stackTrace: st);
+      }
     });
   }
 

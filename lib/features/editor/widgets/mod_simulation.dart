@@ -287,7 +287,7 @@ class _SimulateArea extends ConsumerWidget {
                         ),
                         const SizedBox(width: 10),
                         Text(
-                          'SIMULATING...',
+                          'SIMULATING  ${sim.elapsedSeconds}s',
                           style: monoStyle(
                             size: 10,
                             color: const Color(0xFF1A0F06),
@@ -307,6 +307,29 @@ class _SimulateArea extends ConsumerWidget {
             ),
           ),
         ),
+
+        if (isLoading) ...[
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              ref.read(simulationProvider.notifier).cancel();
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 11),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                    color: kAmber.withValues(alpha: 0.25), width: 0.5),
+              ),
+              child: Center(
+                child: Text('CANCEL',
+                    style: monoStyle(size: 9, color: kMute, letterSpacing: 2)),
+              ),
+            ),
+          ),
+        ],
 
         const SizedBox(height: 8),
       ],

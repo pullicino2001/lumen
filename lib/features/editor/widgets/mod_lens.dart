@@ -293,7 +293,7 @@ class _VignetteDiagramPainter extends CustomPainter {
         (center.dx - 0.5).abs() < 0.01 && (center.dy - 0.5).abs() < 0.01;
     _text(
         canvas,
-        '${profile?.name ?? "None"} · ${_focalLabel()}',
+        '${profile?.name ?? "None"} · ${profile?.apertureLabel ?? "—"}',
         monoStyle(size: 9, color: kAmber, letterSpacing: 2),
         Offset(8, h - 12));
     _text(
@@ -304,18 +304,6 @@ class _VignetteDiagramPainter extends CustomPainter {
         monoStyle(size: 9, letterSpacing: 2),
         Offset(w - 8, h - 12),
         align: TextAlign.right);
-  }
-
-  String _focalLabel() {
-    if (profile == null) return '—';
-    return switch (profile!.id) {
-      'classic_50'  => 'f/1.8',
-      'portrait_85' => 'f/1.4',
-      'wide_24'     => 'f/2.8',
-      'vintage_35'  => 'f/2.8',
-      'anamorphic'  => 'f/2.0',
-      _ => 'f/—',
-    };
   }
 
   void _text(Canvas canvas, String text, TextStyle style, Offset pos,

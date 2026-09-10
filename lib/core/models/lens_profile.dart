@@ -69,4 +69,21 @@ abstract class LensProfile with _$LensProfile implements PromptContributor {
 
   @override
   String toPromptFragment() => promptFragment;
+
+  /// Aperture label for display, e.g. 'f/1.4', parsed from [name]
+  /// ('Summilux 50 f/1.4'). Falls back to known character-profile apertures
+  /// for the legacy profiles, then to 'f/—'.
+  String get apertureLabel {
+    final m = RegExp(r'f/\s*(\d+(?:\.\d+)?)', caseSensitive: false)
+        .firstMatch(name);
+    if (m != null) return 'f/${m.group(1)}';
+    return switch (id) {
+      'classic_50'  => 'f/1.8',
+      'portrait_85' => 'f/1.4',
+      'wide_24'     => 'f/2.8',
+      'vintage_35'  => 'f/2.8',
+      'anamorphic'  => 'f/2.0',
+      _             => 'f/—',
+    };
+  }
 }

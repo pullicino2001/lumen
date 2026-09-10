@@ -24,7 +24,14 @@ mixin _$FilmStock {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get description => throw _privateConstructorUsedError;
-  StockTier get tier =>
+  StockTier get tier => throw _privateConstructorUsedError;
+
+  /// Box speed of the emulsion (ISO). Shown on the stock card.
+  int get iso => throw _privateConstructorUsedError;
+
+  /// Short catalogue code shown on the stock card, e.g. 'PT-400'.
+  /// Empty string → derived from [id] and [iso] by [displayCode].
+  String get code =>
       throw _privateConstructorUsedError; // ── Stage 6: Dye coupler colour matrix ─────────────────────────────────
   // Row-major 3×3 applied in perceptual space.
   // Identity = [1,0,0, 0,1,0, 0,0,1].
@@ -78,6 +85,8 @@ abstract class $FilmStockCopyWith<$Res> {
     String name,
     String description,
     StockTier tier,
+    int iso,
+    String code,
     List<double> colourMatrix,
     List<double> redCurve,
     List<double> greenCurve,
@@ -111,6 +120,8 @@ class _$FilmStockCopyWithImpl<$Res, $Val extends FilmStock>
     Object? name = null,
     Object? description = null,
     Object? tier = null,
+    Object? iso = null,
+    Object? code = null,
     Object? colourMatrix = null,
     Object? redCurve = null,
     Object? greenCurve = null,
@@ -141,6 +152,14 @@ class _$FilmStockCopyWithImpl<$Res, $Val extends FilmStock>
                 ? _value.tier
                 : tier // ignore: cast_nullable_to_non_nullable
                       as StockTier,
+            iso: null == iso
+                ? _value.iso
+                : iso // ignore: cast_nullable_to_non_nullable
+                      as int,
+            code: null == code
+                ? _value.code
+                : code // ignore: cast_nullable_to_non_nullable
+                      as String,
             colourMatrix: null == colourMatrix
                 ? _value.colourMatrix
                 : colourMatrix // ignore: cast_nullable_to_non_nullable
@@ -205,6 +224,8 @@ abstract class _$$FilmStockImplCopyWith<$Res>
     String name,
     String description,
     StockTier tier,
+    int iso,
+    String code,
     List<double> colourMatrix,
     List<double> redCurve,
     List<double> greenCurve,
@@ -237,6 +258,8 @@ class __$$FilmStockImplCopyWithImpl<$Res>
     Object? name = null,
     Object? description = null,
     Object? tier = null,
+    Object? iso = null,
+    Object? code = null,
     Object? colourMatrix = null,
     Object? redCurve = null,
     Object? greenCurve = null,
@@ -267,6 +290,14 @@ class __$$FilmStockImplCopyWithImpl<$Res>
             ? _value.tier
             : tier // ignore: cast_nullable_to_non_nullable
                   as StockTier,
+        iso: null == iso
+            ? _value.iso
+            : iso // ignore: cast_nullable_to_non_nullable
+                  as int,
+        code: null == code
+            ? _value.code
+            : code // ignore: cast_nullable_to_non_nullable
+                  as String,
         colourMatrix: null == colourMatrix
             ? _value._colourMatrix
             : colourMatrix // ignore: cast_nullable_to_non_nullable
@@ -324,6 +355,8 @@ class _$FilmStockImpl extends _FilmStock {
     required this.name,
     required this.description,
     this.tier = StockTier.free,
+    this.iso = 400,
+    this.code = '',
     final List<double> colourMatrix = const [
       1.0,
       0.0,
@@ -364,6 +397,17 @@ class _$FilmStockImpl extends _FilmStock {
   @override
   @JsonKey()
   final StockTier tier;
+
+  /// Box speed of the emulsion (ISO). Shown on the stock card.
+  @override
+  @JsonKey()
+  final int iso;
+
+  /// Short catalogue code shown on the stock card, e.g. 'PT-400'.
+  /// Empty string → derived from [id] and [iso] by [displayCode].
+  @override
+  @JsonKey()
+  final String code;
   // ── Stage 6: Dye coupler colour matrix ─────────────────────────────────
   // Row-major 3×3 applied in perceptual space.
   // Identity = [1,0,0, 0,1,0, 0,0,1].
@@ -466,7 +510,7 @@ class _$FilmStockImpl extends _FilmStock {
 
   @override
   String toString() {
-    return 'FilmStock(id: $id, name: $name, description: $description, tier: $tier, colourMatrix: $colourMatrix, redCurve: $redCurve, greenCurve: $greenCurve, blueCurve: $blueCurve, shadowHueDeg: $shadowHueDeg, shadowHueStrength: $shadowHueStrength, highlightHueDeg: $highlightHueDeg, highlightHueStrength: $highlightHueStrength, halationTint: $halationTint, intensity: $intensity, promptFragment: $promptFragment)';
+    return 'FilmStock(id: $id, name: $name, description: $description, tier: $tier, iso: $iso, code: $code, colourMatrix: $colourMatrix, redCurve: $redCurve, greenCurve: $greenCurve, blueCurve: $blueCurve, shadowHueDeg: $shadowHueDeg, shadowHueStrength: $shadowHueStrength, highlightHueDeg: $highlightHueDeg, highlightHueStrength: $highlightHueStrength, halationTint: $halationTint, intensity: $intensity, promptFragment: $promptFragment)';
   }
 
   @override
@@ -479,6 +523,8 @@ class _$FilmStockImpl extends _FilmStock {
             (identical(other.description, description) ||
                 other.description == description) &&
             (identical(other.tier, tier) || other.tier == tier) &&
+            (identical(other.iso, iso) || other.iso == iso) &&
+            (identical(other.code, code) || other.code == code) &&
             const DeepCollectionEquality().equals(
               other._colourMatrix,
               _colourMatrix,
@@ -518,6 +564,8 @@ class _$FilmStockImpl extends _FilmStock {
     name,
     description,
     tier,
+    iso,
+    code,
     const DeepCollectionEquality().hash(_colourMatrix),
     const DeepCollectionEquality().hash(_redCurve),
     const DeepCollectionEquality().hash(_greenCurve),
@@ -551,6 +599,8 @@ abstract class _FilmStock extends FilmStock {
     required final String name,
     required final String description,
     final StockTier tier,
+    final int iso,
+    final String code,
     final List<double> colourMatrix,
     final List<double> redCurve,
     final List<double> greenCurve,
@@ -575,7 +625,16 @@ abstract class _FilmStock extends FilmStock {
   @override
   String get description;
   @override
-  StockTier get tier; // ── Stage 6: Dye coupler colour matrix ─────────────────────────────────
+  StockTier get tier;
+
+  /// Box speed of the emulsion (ISO). Shown on the stock card.
+  @override
+  int get iso;
+
+  /// Short catalogue code shown on the stock card, e.g. 'PT-400'.
+  /// Empty string → derived from [id] and [iso] by [displayCode].
+  @override
+  String get code; // ── Stage 6: Dye coupler colour matrix ─────────────────────────────────
   // Row-major 3×3 applied in perceptual space.
   // Identity = [1,0,0, 0,1,0, 0,0,1].
   // Row 0 = how R is computed from input (R,G,B).

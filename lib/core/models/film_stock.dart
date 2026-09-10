@@ -10,8 +10,7 @@ enum StockTier { free, pro }
 ///
 /// Stages 6-8 run in the main fragment shader (colour matrix → tone curves →
 /// hue shifts). Stage 9 (halation tint) feeds into BloomService. Stage 10
-/// (grain) is user-controlled via GrainPanel; grainProfile defines the
-/// stock's natural defaults only.
+/// (grain) is user-controlled via the Grain module.
 @freezed
 abstract class FilmStock with _$FilmStock implements PromptContributor {
   const FilmStock._();
@@ -21,6 +20,13 @@ abstract class FilmStock with _$FilmStock implements PromptContributor {
     required String name,
     required String description,
     @Default(StockTier.free) StockTier tier,
+
+    /// Box speed of the emulsion (ISO). Shown on the stock card.
+    @Default(400) int iso,
+
+    /// Short catalogue code shown on the stock card, e.g. 'PT-400'.
+    /// Empty string → derived from [id] and [iso] by [displayCode].
+    @Default('') String code,
 
     // ── Stage 6: Dye coupler colour matrix ─────────────────────────────────
     // Row-major 3×3 applied in perceptual space.
@@ -67,4 +73,14 @@ abstract class FilmStock with _$FilmStock implements PromptContributor {
 
   @override
   String toPromptFragment() => promptFragment;
+
+  /// Catalogue code for display: [code] if set, else the first two letters of
+  /// the id (upper-cased) joined with the ISO, e.g. 'portra_400' → 'PO-400'.
+  String get displayCode {
+    if (code.isNotEmpty) return code;
+    final letters = id.replaceAll(RegExp('[^a-zA-Z]'), '');
+    final prefix = (letters.length >= 2 ? letters.substring(0, 2) : letters)
+        .toUpperCase();
+    return '$prefix-$iso';
+  }
 }

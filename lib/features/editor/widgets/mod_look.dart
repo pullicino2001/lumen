@@ -321,9 +321,16 @@ class _FilmFrame extends StatelessWidget {
 
   List<Color> _colorsForStock(String id) => switch (id) {
         'portra_400'     => [const Color(0xFFE0A26F), const Color(0xFF4E1E10)],
+        'portra_160'     => [const Color(0xFFE8B98F), const Color(0xFF4A2A18)],
+        'ektar_100'      => [const Color(0xFFE05A3A), const Color(0xFF3A0E08)],
         'gold_200'       => [const Color(0xFFD98B3C), const Color(0xFF2A1008)],
         'cinestill_800t' => [const Color(0xFF7AA6C4), const Color(0xFF1A2A3A)],
+        'cinestill_400d' => [const Color(0xFFB8A488), const Color(0xFF2A2018)],
+        'velvia_50'      => [const Color(0xFFC04A8A), const Color(0xFF14103A)],
         'superia_400'    => [const Color(0xFF80A870), const Color(0xFF1A2A1A)],
+        'acros_100'      => [const Color(0xFFE8E8E8), const Color(0xFF1C1C1C)],
+        'hp5_plus'       => [const Color(0xFFB8B8B8), const Color(0xFF0C0C0C)],
+        'delta_400'      => [const Color(0xFFC8C8C8), const Color(0xFF141414)],
         'trix_400'       => [const Color(0xFFD0D0D0), const Color(0xFF101010)],
         _                => [const Color(0xFF888888), const Color(0xFF181818)],
       };
@@ -338,8 +345,8 @@ class _FilmstockCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = stock?.name ?? 'None';
-    final code = _codeForStock(stock?.id);
-    final iso = _isoForStock(stock?.id);
+    final code = stock?.displayCode ?? 'ST-000';
+    final iso = stock?.iso.toString() ?? '—';
     final barColors = _barForStock(stock?.id);
 
     return Container(
@@ -392,29 +399,19 @@ class _FilmstockCard extends StatelessWidget {
     );
   }
 
-  String _codeForStock(String? id) => switch (id) {
-        'portra_400'     => 'PT-160',
-        'gold_200'       => 'GD-200',
-        'cinestill_800t' => 'CS-800',
-        'superia_400'    => 'SP-400',
-        'trix_400'       => 'TX-400',
-        _                => 'ST-000',
-      };
-
-  String _isoForStock(String? id) => switch (id) {
-        'portra_400'     => '160',
-        'gold_200'       => '200',
-        'cinestill_800t' => '800',
-        'superia_400'    => '400',
-        'trix_400'       => '400',
-        _                => '—',
-      };
-
+  // Four-step swatch: highlight → midtone → shadow → black for each emulsion.
   List<Color> _barForStock(String? id) => switch (id) {
         'portra_400'     => [const Color(0xFFF2C8A6), const Color(0xFFD98D63), const Color(0xFF8A3D20), const Color(0xFF2A130A)],
+        'portra_160'     => [const Color(0xFFF4D6BC), const Color(0xFFDCA47E), const Color(0xFF8C4A2A), const Color(0xFF2A1810)],
+        'ektar_100'      => [const Color(0xFFFFC9A8), const Color(0xFFE8663C), const Color(0xFF8A2410), const Color(0xFF260A06)],
         'gold_200'       => [const Color(0xFFFFD080), const Color(0xFFD98B3C), const Color(0xFF7A3A10), const Color(0xFF1A0804)],
         'cinestill_800t' => [const Color(0xFFD8E5EC), const Color(0xFF8FAEC4), const Color(0xFF42607A), const Color(0xFF12243A)],
+        'cinestill_400d' => [const Color(0xFFE6DCCB), const Color(0xFFB8A488), const Color(0xFF5E4C38), const Color(0xFF1C1610)],
+        'velvia_50'      => [const Color(0xFFF0C0DC), const Color(0xFFC04A8A), const Color(0xFF4A1E6A), const Color(0xFF0C0A24)],
         'superia_400'    => [const Color(0xFFC8E0B8), const Color(0xFF7AAA68), const Color(0xFF3A5A28), const Color(0xFF0A1A08)],
+        'acros_100'      => [const Color(0xFFF0F0F0), const Color(0xFF9A9A9A), const Color(0xFF3C3C3C), const Color(0xFF0A0A0A)],
+        'hp5_plus'       => [const Color(0xFFC4C4C4), const Color(0xFF7A7A7A), const Color(0xFF303030), const Color(0xFF040404)],
+        'delta_400'      => [const Color(0xFFD8D8D8), const Color(0xFF888888), const Color(0xFF343434), const Color(0xFF080808)],
         'trix_400'       => [const Color(0xFFD0D0D0), const Color(0xFF7A7A7A), const Color(0xFF2A2A2A), const Color(0xFF060606)],
         _                => [const Color(0xFF8A6A48), const Color(0xFF5A4028), const Color(0xFF2A1A10), const Color(0xFF0A0604)],
       };

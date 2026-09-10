@@ -13,6 +13,8 @@ _$FilmStockImpl _$$FilmStockImplFromJson(
   name: json['name'] as String,
   description: json['description'] as String,
   tier: $enumDecodeNullable(_$StockTierEnumMap, json['tier']) ?? StockTier.free,
+  iso: (json['iso'] as num?)?.toInt() ?? 400,
+  code: json['code'] as String? ?? '',
   colourMatrix:
       (json['colourMatrix'] as List<dynamic>?)
           ?.map((e) => (e as num).toDouble())
@@ -53,6 +55,8 @@ Map<String, dynamic> _$$FilmStockImplToJson(_$FilmStockImpl instance) =>
       'name': instance.name,
       'description': instance.description,
       'tier': _$StockTierEnumMap[instance.tier]!,
+      'iso': instance.iso,
+      'code': instance.code,
       'colourMatrix': instance.colourMatrix,
       'redCurve': instance.redCurve,
       'greenCurve': instance.greenCurve,

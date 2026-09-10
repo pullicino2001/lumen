@@ -6,6 +6,8 @@ const List<FilmStock> kFilmStocks = [
   // Natural skin tones, subtle warmth, smooth highlight rolloff, fine grain.
   FilmStock(
     id: 'portra_400',
+    iso: 400,
+    code: 'PT-400',
     name: 'Portra 400',
     description: 'Natural warmth, smooth highlights, timeless portraits',
     colourMatrix: [
@@ -34,6 +36,8 @@ const List<FilmStock> kFilmStocks = [
   // Identical colour science to Portra 400 but with near-invisible fine grain.
   FilmStock(
     id: 'portra_160',
+    iso: 160,
+    code: 'PT-160',
     name: 'Portra 160',
     description: 'Portra warmth at lower ISO — finest grain, maximum refinement',
     tier: StockTier.pro,
@@ -62,6 +66,8 @@ const List<FilmStock> kFilmStocks = [
   // Cool, highly saturated. Extraordinary blues. Not a portrait film.
   FilmStock(
     id: 'ektar_100',
+    iso: 100,
+    code: 'EK-100',
     name: 'Ektar 100',
     description: 'Vivid saturated colour, extraordinary blues, precision landscape film',
     tier: StockTier.pro,
@@ -91,6 +97,8 @@ const List<FilmStock> kFilmStocks = [
   // Warm, saturated, golden shadows. The classic consumer Kodak look.
   FilmStock(
     id: 'gold_200',
+    iso: 200,
+    code: 'GD-200',
     name: 'Gold 200',
     description: 'Warm golden tones, punchy shadows, saturated colours',
     colourMatrix: [
@@ -118,6 +126,8 @@ const List<FilmStock> kFilmStocks = [
   // warm orange halation (the rem-jet effect). High grain, filmic contrast.
   FilmStock(
     id: 'cinestill_800t',
+    iso: 800,
+    code: 'CS-800T',
     name: 'Cinestill 800T',
     description: 'Tungsten cool cast, warm halation glow, cinematic grain',
     tier: StockTier.pro,
@@ -147,6 +157,8 @@ const List<FilmStock> kFilmStocks = [
   // halation still present but with cooler daylight-toned halos.
   FilmStock(
     id: 'cinestill_400d',
+    iso: 400,
+    code: 'CS-400D',
     name: 'Cinestill 400D',
     description: 'Daylight-balanced cinematic colour with characteristic halation',
     tier: StockTier.pro,
@@ -176,6 +188,8 @@ const List<FilmStock> kFilmStocks = [
   // Steep contrast, vivid blues, luminous greens.
   FilmStock(
     id: 'velvia_50',
+    iso: 50,
+    code: 'VV-50',
     name: 'Velvia 50',
     description: 'Hyper-saturated vivid colour, extraordinary blues, landscape film',
     tier: StockTier.pro,
@@ -205,6 +219,8 @@ const List<FilmStock> kFilmStocks = [
   // The distinctive Fuji look — distinct from any Kodak stock.
   FilmStock(
     id: 'superia_400',
+    iso: 400,
+    code: 'SP-400',
     name: 'Superia 400',
     description: 'Green-tinged shadows, punchy colours, cool Fuji character',
     colourMatrix: [
@@ -231,6 +247,8 @@ const List<FilmStock> kFilmStocks = [
   // medium contrast. Fine-art and landscape photography.
   FilmStock(
     id: 'acros_100',
+    iso: 100,
+    code: 'AC-100',
     name: 'Acros 100',
     description: 'Finest-quality black and white — near-invisible grain, exceptional shadow detail',
     tier: StockTier.pro,
@@ -260,6 +278,8 @@ const List<FilmStock> kFilmStocks = [
   // More shadow detail than Tri-X, slightly less chunky grain.
   FilmStock(
     id: 'hp5_plus',
+    iso: 400,
+    code: 'HP5-400',
     name: 'HP5 Plus',
     description: 'British B&W with refined tone — versatile portrait and documentary film',
     tier: StockTier.pro,
@@ -289,6 +309,8 @@ const List<FilmStock> kFilmStocks = [
   // Medium contrast with excellent shadow and highlight latitude.
   FilmStock(
     id: 'delta_400',
+    iso: 400,
+    code: 'DL-400',
     name: 'Delta 400',
     description: 'Finest-grain ISO 400 B&W — precise tabular grain, modern refinement',
     tier: StockTier.pro,
@@ -318,6 +340,8 @@ const List<FilmStock> kFilmStocks = [
   // silver-halide grain character.
   FilmStock(
     id: 'trix_400',
+    iso: 400,
+    code: 'TX-400',
     name: 'Tri-X 400',
     description: 'High-contrast black and white, classic silver grain',
     colourMatrix: [

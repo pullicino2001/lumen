@@ -28,7 +28,10 @@ class AtlasCloudService {
 
   final AiModelConfigService? _modelConfig;
 
-  String? get _apiKey => dotenv.env['ATLAS_API_KEY'];
+  /// Reads the API key from the loaded .env. Returns null when dotenv was
+  /// never initialised (e.g. in unit tests) instead of throwing.
+  String? get _apiKey =>
+      dotenv.isInitialized ? dotenv.env['ATLAS_API_KEY'] : null;
 
   Map<String, String> get _headers => {
         'Authorization': 'Bearer ${_apiKey ?? ''}',

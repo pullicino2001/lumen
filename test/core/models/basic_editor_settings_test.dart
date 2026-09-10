@@ -64,6 +64,12 @@ void main() {
       expect(s.toPromptFragment(), contains('desaturated'));
     });
 
+    test('heavy desaturation produces monochromatic, not desaturated', () {
+      final s = const BasicEditorSettings(saturation: -90.0);
+      expect(s.toPromptFragment(), contains('monochromatic'));
+      expect(s.toPromptFragment(), isNot(contains('desaturated')));
+    });
+
     test('multiple non-neutral params are all included', () {
       final s = const BasicEditorSettings(
         exposure: -1.5,

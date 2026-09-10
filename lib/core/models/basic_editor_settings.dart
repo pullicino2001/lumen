@@ -100,18 +100,21 @@ abstract class BasicEditorSettings
       parts.add('lifted shadows');
     }
 
+    // Slider semantics follow Lightroom: a low Kelvin value renders the
+    // image cooler (blue), a high value renders it warmer.
     if (temperature <= 3500) {
-      parts.add('cool tones, daylight white balance');
+      parts.add('cool tones, blue-shifted white balance');
     } else if (temperature >= 8000) {
       parts.add('warm tones, golden hour light');
     }
 
-    if (saturation >= 40) {
-      parts.add('vivid colors');
+    // Check the stronger threshold first — otherwise it is unreachable.
+    if (saturation <= -80) {
+      parts.add('monochromatic');
     } else if (saturation <= -40) {
       parts.add('desaturated');
-    } else if (saturation <= -80) {
-      parts.add('monochromatic');
+    } else if (saturation >= 40) {
+      parts.add('vivid colors');
     }
 
     if (clarity >= 30) {

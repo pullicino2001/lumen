@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lumen/core/models/basic_editor_settings.dart';
 import 'package:lumen/core/models/edit_state.dart';
 import 'package:lumen/core/models/gallery_entry.dart';
 import 'package:lumen/core/providers/edit_state_provider.dart';
@@ -31,13 +30,6 @@ ProviderContainer _makeContainer() {
     ],
   );
 }
-
-EditState _makeState({double exposure = 0.0}) => EditState(
-      originalFilePath: '/orig.jpg',
-      workingFilePath: '/working.png',
-      proxyFilePath: '/proxy.jpg',
-      basicEditor: BasicEditorSettings(exposure: exposure),
-    );
 
 void main() {
   group('EditStateNotifier — undo/redo', () {

@@ -22,6 +22,7 @@ class _StubAtlasService extends AtlasCloudService {
     required String imagePath,
     required String prompt,
     double strength = 0.75,
+    bool Function()? isCancelled,
   }) async {
     capturedImagePath = imagePath;
     capturedPrompt = prompt;

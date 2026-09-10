@@ -5,6 +5,6 @@ import 'package:lumen/app.dart';
 void main() {
   testWidgets('App renders without crashing', (WidgetTester tester) async {
     await tester.pumpWidget(const ProviderScope(child: LumenApp()));
-    expect(find.text('LUMEN'), findsOneWidget);
+    expect(find.text('Lumen'), findsOneWidget);
   });
 }

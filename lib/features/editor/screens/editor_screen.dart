@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../../core/models/baseline_profile.dart';
+import '../../../core/models/edit_state.dart';
 import '../../../core/models/import_profile.dart';
 import '../../../core/providers/edit_state_provider.dart';
 import '../../../core/providers/shader_provider.dart';
@@ -18,6 +19,7 @@ import '../../../core/services/format_ingestion_service.dart';
 import '../../../core/services/lumen_look_service.dart';
 import '../../../core/services/effect_engine.dart';
 import '../../../core/services/export_service.dart';
+import '../../../core/services/generation_service.dart';
 import '../../../shared/theme/lumen_theme.dart';
 import '../widgets/export_sheet.dart';
 import '../widgets/shader_preview.dart';
@@ -1051,7 +1053,12 @@ class _EditorSheet extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final editState = ref.watch(editStateProvider);
     final moduleName = activeModule.fullLabel;
-    final moduleMeta = _metaFor(activeModule, editState);
+    // Only the Simulation module needs the model name; watching lazily keeps
+    // the config load off the critical path for the other modules.
+    final modelId = activeModule == _Module.simulate
+        ? ref.watch(atlasCloudServiceProvider).valueOrNull?.modelId
+        : null;
+    final moduleMeta = _metaFor(activeModule, editState, modelId);
 
     return Container(
       decoration: BoxDecoration(
@@ -1197,20 +1204,44 @@ class _EditorSheet extends ConsumerWidget {
     );
   }
 
-  (String, String) _metaFor(_Module m, dynamic state) => switch (m) {
-    _Module.look     =>
-        ('Film Look', state?.filmStock?.name?.split(' ').first ?? 'None'),
-    _Module.tone     =>
-        ('Highlights', state?.basicEditor?.highlights.toStringAsFixed(0) ?? '0'),
-    _Module.grain    =>
-        ('Intensity', state?.grain?.intensity.toStringAsFixed(0) ?? '0'),
-    _Module.bloom    =>
-        ('Bloom', state?.bloom?.bloomIntensity.toStringAsFixed(0) ?? '0'),
-    _Module.lens     =>
-        ('Profile', state?.lensProfile?.name?.split(' ').last ?? '—'),
-    _Module.simulate =>
-        ('AI Model', 'Flux'),
-  };
+  /// (label, value) shown top-right of the sheet header for each module.
+  (String, String) _metaFor(_Module m, EditState? state, String? modelId) =>
+      switch (m) {
+        _Module.look => (
+            'Film Look',
+            state?.filmStock?.name.split(' ').first ?? 'None',
+          ),
+        _Module.tone => (
+            'Highlights',
+            state?.basicEditor.highlights.toStringAsFixed(0) ?? '0',
+          ),
+        _Module.grain => (
+            'Intensity',
+            state?.grain.intensity.toStringAsFixed(0) ?? '0',
+          ),
+        _Module.bloom => (
+            'Bloom',
+            state?.bloom.bloomIntensity.toStringAsFixed(0) ?? '0',
+          ),
+        _Module.lens => (
+            'Profile',
+            state?.lensProfile?.name.split(' ').last ?? '—',
+          ),
+        _Module.simulate => ('AI Model', _modelLabel(modelId)),
+      };
+
+  /// Human-readable short name for a provider model id, e.g.
+  /// 'black-forest-labs/flux-kontext-dev' → 'Flux Kontext'.
+  static String _modelLabel(String? id) {
+    if (id == null || id.isEmpty) return '—';
+    final tail = id.split('/').last;
+    final words = tail
+        .split(RegExp('[-_ ]+'))
+        .where((w) => w.isNotEmpty && w != 'dev')
+        .map((w) => w[0].toUpperCase() + w.substring(1))
+        .take(2);
+    return words.isEmpty ? tail : words.join(' ');
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

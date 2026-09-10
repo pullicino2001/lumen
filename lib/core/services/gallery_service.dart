@@ -6,12 +6,37 @@ import 'package:path_provider/path_provider.dart';
 import '../models/edit_state.dart';
 import '../models/gallery_entry.dart';
 
+/// Persists gallery entries as a single JSON index plus one directory of
+/// image files per entry under the app documents directory.
+///
+/// Every mutating operation is a read-modify-write of the index. They are
+/// serialised through [_serialized] so an auto-save racing an export snapshot
+/// (or a second import) can never drop the other's update, and the index is
+/// written atomically (temp file + rename) so a crash mid-write never leaves
+/// a truncated file behind.
 class GalleryService {
+  GalleryService({Future<Directory> Function()? documentsDirectory})
+      : _documentsDirectory =
+            documentsDirectory ?? getApplicationDocumentsDirectory;
+
   static const _indexFile = 'index.json';
   static final _log = Logger();
 
+  final Future<Directory> Function() _documentsDirectory;
+
+  /// Tail of the mutation queue. Each mutation chains onto the previous one.
+  Future<void> _queue = Future<void>.value();
+
+  /// Runs [op] after every previously queued mutation has finished.
+  Future<T> _serialized<T>(Future<T> Function() op) {
+    final result = _queue.then((_) => op());
+    // Keep the chain alive even if op throws; the error still reaches `result`.
+    _queue = result.then<void>((_) {}, onError: (Object _) {});
+    return result;
+  }
+
   Future<Directory> _galleryDir() async {
-    final docs = await getApplicationDocumentsDirectory();
+    final docs = await _documentsDirectory();
     final dir = Directory(p.join(docs.path, 'lumen_gallery'));
     await dir.create(recursive: true);
     return dir;
@@ -24,9 +49,9 @@ class GalleryService {
 
   Future<List<GalleryEntry>> loadAll() async {
     final file = await _indexFile_();
-    if (!file.existsSync()) return [];
+    if (!await file.exists()) return [];
     try {
-      final raw = jsonDecode(file.readAsStringSync()) as List;
+      final raw = jsonDecode(await file.readAsString()) as List;
       return raw
           .map((e) => GalleryEntry.fromJson(
               Map<String, dynamic>.from(e as Map)))
@@ -39,14 +64,22 @@ class GalleryService {
     }
   }
 
+  /// Writes the index atomically: serialise to a temp file, flush, rename.
   Future<void> _persist(List<GalleryEntry> entries) async {
     final file = await _indexFile_();
-    file.writeAsStringSync(
-        jsonEncode(entries.map((e) => e.toJson()).toList()));
+    final tmp = File('${file.path}.tmp');
+    await tmp.writeAsString(
+      jsonEncode(entries.map((e) => e.toJson()).toList()),
+      flush: true,
+    );
+    await tmp.rename(file.path);
   }
 
   /// Copies source/thumb to permanent storage and returns a new [GalleryEntry].
-  Future<GalleryEntry> createEntry(EditState state) async {
+  Future<GalleryEntry> createEntry(EditState state) =>
+      _serialized(() => _createEntry(state));
+
+  Future<GalleryEntry> _createEntry(EditState state) async {
     final dir = await _galleryDir();
     final id = DateTime.now().millisecondsSinceEpoch.toString();
     final entryDir = Directory(p.join(dir.path, id));
@@ -85,6 +118,13 @@ class GalleryService {
     String entryId,
     EditState state, {
     String? exportedPath,
+  }) =>
+      _serialized(() => _addSnapshot(entryId, state, exportedPath: exportedPath));
+
+  Future<GalleryEntry> _addSnapshot(
+    String entryId,
+    EditState state, {
+    String? exportedPath,
   }) async {
     final all = await loadAll();
     final idx = all.indexWhere((e) => e.id == entryId);
@@ -118,6 +158,12 @@ class GalleryService {
   /// Updates only the current edit state of an entry — no history snapshot created.
   /// Called automatically as the user edits so changes are always persisted.
   Future<GalleryEntry> updateCurrentState(
+    String entryId,
+    EditState state,
+  ) =>
+      _serialized(() => _updateCurrentState(entryId, state));
+
+  Future<GalleryEntry> _updateCurrentState(
     String entryId,
     EditState state,
   ) async {

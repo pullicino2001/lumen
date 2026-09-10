@@ -1,0 +1,12 @@
+# Code-generation options.
+#
+# explicit_to_json makes generated toJson() call toJson() on nested models
+# (BasicEditorSettings, FilmStock, ...) instead of embedding the objects
+# themselves. jsonEncode() tolerates either, but code that keeps the map in
+# memory and later calls fromJson() on it (the gallery index) does not.
+targets:
+  $default:
+    builders:
+      json_serializable:
+        options:
+          explicit_to_json: true

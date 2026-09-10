@@ -35,6 +35,16 @@ class GalleryService {
     return result;
   }
 
+  /// Converts [state] to a JSON map made only of plain JSON values.
+  ///
+  /// The generated toJson() is configured with explicit_to_json, but a
+  /// round-trip through the encoder guarantees the in-memory map handed to
+  /// GalleryEntry is exactly what would be read back from disk — nested
+  /// model objects in the map made EditState.fromJson throw on a type cast
+  /// when a freshly imported entry was reopened before an app restart.
+  static Map<String, dynamic> _plainJson(EditState state) =>
+      jsonDecode(jsonEncode(state.toJson())) as Map<String, dynamic>;
+
   Future<Directory> _galleryDir() async {
     final docs = await _documentsDirectory();
     final dir = Directory(p.join(docs.path, 'lumen_gallery'));
@@ -103,7 +113,7 @@ class GalleryService {
       id: id,
       sourcePath: sourcePath,
       thumbPath: thumbPath,
-      currentEditStateJson: permanentState.toJson(),
+      currentEditStateJson: _plainJson(permanentState),
       importedAt: DateTime.now(),
     );
 
@@ -141,12 +151,12 @@ class GalleryService {
     final snapshot = EditSnapshot(
       id: '${DateTime.now().millisecondsSinceEpoch}',
       savedAt: DateTime.now(),
-      editStateJson: patched.toJson(),
+      editStateJson: _plainJson(patched),
       exportedPath: exportedPath,
     );
 
     final updated = entry.copyWith(
-      currentEditStateJson: patched.toJson(),
+      currentEditStateJson: _plainJson(patched),
       history: [...entry.history, snapshot],
     );
 

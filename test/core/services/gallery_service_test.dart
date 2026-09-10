@@ -71,4 +71,31 @@ void main() {
     expect(await service.loadAll(), isEmpty);
     expect(File('${index.path}.corrupt').existsSync(), isTrue);
   });
+
+  test('buildEditState restores a snapshot with patched paths', () async {
+    final entry = await service.createEntry(state);
+    final updated = await service.addSnapshot(
+      entry.id,
+      state.copyWith(basicEditor: const BasicEditorSettings(contrast: 42)),
+    );
+    final restored = service.buildEditState(updated, updated.history.single);
+    expect(restored.basicEditor.contrast, 42);
+    expect(restored.workingFilePath, updated.sourcePath);
+    expect(restored.proxyFilePath, updated.thumbPath);
+  });
+
+  test('in-memory entry JSON contains only plain values (regression: '
+      'reopening a fresh import crashed on a type cast)', () async {
+    final entry = await service.createEntry(
+      state.copyWith(basicEditor: const BasicEditorSettings(exposure: 1.5)),
+    );
+    // The entry returned to the provider (not reloaded from disk) must be
+    // usable by buildEditState directly.
+    expect(entry.currentEditStateJson['basicEditor'], isA<Map>());
+    final restored = service.buildEditState(entry);
+    expect(restored.basicEditor.exposure, 1.5);
+    // And its JSON must equal what a disk round-trip produces.
+    final fromDisk = (await service.loadAll()).single;
+    expect(entry.currentEditStateJson, equals(fromDisk.currentEditStateJson));
+  });
 }

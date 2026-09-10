@@ -14,7 +14,9 @@ final simulationProvider =
 );
 
 class SimulationNotifier extends Notifier<SimulationState> {
-  bool _cancelled = false;
+  /// Monotonic id of the most recently started job. A job whose id no longer
+  /// matches has been cancelled or superseded and must not touch state.
+  int _jobId = 0;
   Timer? _elapsedTimer;
 
   @override
@@ -57,7 +59,7 @@ class SimulationNotifier extends Notifier<SimulationState> {
   /// Cancels an in-progress generation. No-op if not loading.
   void cancel() {
     if (state.status != SimulationStatus.loading) return;
-    _cancelled = true;
+    _jobId++; // invalidates the running job
     _elapsedTimer?.cancel();
     state = state.copyWith(
       status: SimulationStatus.idle,
@@ -71,7 +73,9 @@ class SimulationNotifier extends Notifier<SimulationState> {
     final editState = ref.read(editStateProvider);
     if (editState == null) return;
 
-    _cancelled = false;
+    // Starting a new job invalidates any job still in flight (e.g. one that
+    // was cancelled but is still awaiting its HTTP response).
+    final myJob = ++_jobId;
     _elapsedTimer?.cancel();
 
     final camera = kCameraProfiles[state.cameraIndex.clamp(0, kCameraProfiles.length - 1)];
@@ -97,7 +101,7 @@ class SimulationNotifier extends Notifier<SimulationState> {
     // Tick elapsed time every second while loading.
     final startTime = DateTime.now();
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (state.status == SimulationStatus.loading) {
+      if (myJob == _jobId && state.status == SimulationStatus.loading) {
         state = state.copyWith(
           elapsedSeconds: DateTime.now().difference(startTime).inSeconds,
         );
@@ -118,9 +122,10 @@ class SimulationNotifier extends Notifier<SimulationState> {
         imagePath: editState.proxyFilePath,
         prompt: prompt,
         strength: state.strength,
-        isCancelled: () => _cancelled,
+        isCancelled: () => myJob != _jobId,
       );
 
+      if (myJob != _jobId) return; // superseded while downloading
       _elapsedTimer?.cancel();
       state = state.copyWith(
         status: SimulationStatus.success,
@@ -128,9 +133,9 @@ class SimulationNotifier extends Notifier<SimulationState> {
         resultPath: resultPath,
       );
     } on AtlasCloudCancelledException {
-      _elapsedTimer?.cancel();
-      // State was already reset by cancel(); nothing more to do.
+      // State was already reset by cancel() or replaced by a newer job.
     } on AtlasCloudException catch (e) {
+      if (myJob != _jobId) return;
       _elapsedTimer?.cancel();
       state = state.copyWith(
         status: SimulationStatus.error,
@@ -139,6 +144,7 @@ class SimulationNotifier extends Notifier<SimulationState> {
         clearResult: true,
       );
     } catch (e) {
+      if (myJob != _jobId) return;
       _elapsedTimer?.cancel();
       state = state.copyWith(
         status: SimulationStatus.error,

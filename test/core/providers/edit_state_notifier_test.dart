@@ -126,6 +126,35 @@ void main() {
       expect(c.read(undoAvailabilityProvider).canRedo, isFalse);
     });
 
+    test('loadGeneratedResult swaps paths and clears the LUMEN proxy', () {
+      final c = _makeContainer();
+      addTearDown(c.dispose);
+      final n = c.read(editStateProvider.notifier);
+      n.load('/o.jpg', '/w.png', '/p.jpg');
+      n.setLumenProxyPath('/p.jpg', '/p_lumen.jpg');
+      expect(c.read(editStateProvider)!.lumenProxyPath, '/p_lumen.jpg');
+
+      n.loadGeneratedResult('/tmp/sim_1.jpg');
+
+      final s = c.read(editStateProvider)!;
+      expect(s.originalFilePath, '/o.jpg');
+      expect(s.workingFilePath, '/tmp/sim_1.jpg');
+      expect(s.proxyFilePath, '/tmp/sim_1.jpg');
+      expect(s.generatedFilePath, '/tmp/sim_1.jpg');
+      expect(s.lumenProxyPath, isNull);
+      expect(c.read(undoAvailabilityProvider).canUndo, isTrue);
+    });
+
+    test('setLumenProxyPath ignores stale callbacks for a previous proxy', () {
+      final c = _makeContainer();
+      addTearDown(c.dispose);
+      final n = c.read(editStateProvider.notifier);
+      n.load('/o.jpg', '/w.png', '/p.jpg');
+      n.load('/o2.jpg', '/w2.png', '/p2.jpg');
+      n.setLumenProxyPath('/p.jpg', '/p_lumen.jpg');
+      expect(c.read(editStateProvider)!.lumenProxyPath, isNull);
+    });
+
     test('setEntryId updates currentEntryIdProvider', () {
       final c = _makeContainer();
       addTearDown(c.dispose);

@@ -245,12 +245,16 @@ class EditStateNotifier extends Notifier<EditState?> {
   /// Loads an AI-generated result into the editor as the new working file.
   /// The original file path is preserved; the result becomes the new working
   /// and proxy path so all subsequent edits layer on top of the generation.
+  /// The LUMEN proxy is cleared because it was derived from the old proxy;
+  /// the editor regenerates it for the new image.
   void loadGeneratedResult(String resultPath) {
     if (state == null) return;
     _pushUndoImmediate();
     state = state!.copyWith(
       workingFilePath: resultPath,
       proxyFilePath: resultPath,
+      generatedFilePath: resultPath,
+      lumenProxyPath: null,
     );
     _scheduleAutoSave();
   }

@@ -296,6 +296,8 @@ class _HybridEditorState extends State<_HybridEditor> {
   // Plus a minimum module content area (160) so the hero never collapses.
   static const double _kSheetChrome = 136.0;
   static const double _kMinModuleH  = 160.0;
+  // Initial sheet height as a fraction of the screen, before the user drags.
+  static const double _kDefaultSheetFrac = 0.36;
 
   // Exclude the left/right edges of the bottom panel from Android's back gesture.
   void _syncGestureExclusion(double sheetH, Size screenSize) {
@@ -337,7 +339,7 @@ class _HybridEditorState extends State<_HybridEditor> {
     final max = screenH - topPad - 160.0;
 
     setState(() {
-      _sheetH = ((_sheetH ?? screenH * 0.50) - dy).clamp(min, max);
+      _sheetH = ((_sheetH ?? screenH * _kDefaultSheetFrac) - dy).clamp(min, max);
     });
   }
 
@@ -350,7 +352,7 @@ class _HybridEditorState extends State<_HybridEditor> {
 
     final min    = _kSheetChrome + _kMinModuleH + botPad;
     final max    = screenH - topPad - 160.0;
-    final sheetH = (_sheetH ?? screenH * 0.36).clamp(min, max);
+    final sheetH = (_sheetH ?? screenH * _kDefaultSheetFrac).clamp(min, max);
 
     WidgetsBinding.instance.addPostFrameCallback(
       (_) { if (mounted) _syncGestureExclusion(sheetH, mq.size); },

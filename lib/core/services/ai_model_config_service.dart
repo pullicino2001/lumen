@@ -38,6 +38,14 @@ class AiModelSlotConfig {
 class AiModelConfigService {
   AiModelConfigService._();
 
+  /// Builds a service directly from an already-decoded config map.
+  /// Useful for tests and for callers that source config elsewhere.
+  factory AiModelConfigService.fromJson(Map<String, dynamic> json) {
+    final service = AiModelConfigService._();
+    service._applyJson(json);
+    return service;
+  }
+
   static final _log = Logger();
 
   AiModelSlotConfig? _generation;
@@ -54,21 +62,24 @@ class AiModelConfigService {
     try {
       final raw = await rootBundle.loadString(kAssetAiModelConfig);
       final json = jsonDecode(raw) as Map<String, dynamic>;
-
-      if (json['generation'] != null) {
-        _generation = AiModelSlotConfig.fromJson(
-          json['generation'] as Map<String, dynamic>,
-        );
-      }
-      if (json['enhancement'] != null) {
-        _enhancement = AiModelSlotConfig.fromJson(
-          json['enhancement'] as Map<String, dynamic>,
-        );
-      }
+      _applyJson(json);
     } catch (e) {
       _log.w('AiModelConfigService: failed to load config — AI features disabled. $e');
       _generation = null;
       _enhancement = null;
+    }
+  }
+
+  void _applyJson(Map<String, dynamic> json) {
+    if (json['generation'] != null) {
+      _generation = AiModelSlotConfig.fromJson(
+        json['generation'] as Map<String, dynamic>,
+      );
+    }
+    if (json['enhancement'] != null) {
+      _enhancement = AiModelSlotConfig.fromJson(
+        json['enhancement'] as Map<String, dynamic>,
+      );
     }
   }
 

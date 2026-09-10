@@ -147,10 +147,12 @@ void _applyToneCurve(img.Image image, List<double> xs, List<double> ys) {
 }
 
 double _lerpCurve(double x, List<double> xs, List<double> ys) {
+  if (xs.isEmpty) return x;
   if (x <= xs.first) return ys.first;
   if (x >= xs.last) return ys.last;
   for (int i = 0; i < xs.length - 1; i++) {
     if (x >= xs[i] && x <= xs[i + 1]) {
+      if (xs[i + 1] <= xs[i]) return ys[i + 1];
       final t = (x - xs[i]) / (xs[i + 1] - xs[i]);
       return ys[i] + t * (ys[i + 1] - ys[i]);
     }

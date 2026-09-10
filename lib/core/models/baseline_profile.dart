@@ -85,6 +85,9 @@ class BaselineProfile {
   double evaluateToneCurve(double input) {
     final x = input.clamp(0.0, 1.0);
 
+    // No curve → identity.
+    if (toneCurvePoints.isEmpty) return x;
+
     // Below first point → clamp to first output.
     if (x <= toneCurvePoints.first.$1) return toneCurvePoints.first.$2;
     // Above last point → clamp to last output.
@@ -94,6 +97,8 @@ class BaselineProfile {
       final (x0, y0) = toneCurvePoints[i];
       final (x1, y1) = toneCurvePoints[i + 1];
       if (x >= x0 && x <= x1) {
+        // Duplicate inputs would divide by zero — treat as a step.
+        if (x1 <= x0) return y1;
         final t = (x - x0) / (x1 - x0);
         return y0 + t * (y1 - y0);
       }
@@ -111,20 +116,33 @@ class BaselineProfile {
     return BaselineProfile.fromJson(json);
   }
 
+  /// Parses the profile JSON. Throws [FormatException] with a descriptive
+  /// message when the grading matrix is not 3×3 or a tone-curve point is
+  /// malformed, so a bad asset fails loudly at load time rather than
+  /// producing garbage pixels.
   factory BaselineProfile.fromJson(Map<String, dynamic> json) {
     // Grading matrix
     final matrixRows = (json['grading_matrix']['rows'] as List)
         .map((row) =>
             (row as List).map((v) => (v as num).toDouble()).toList(growable: false))
         .toList(growable: false);
+    if (matrixRows.length != 3 || matrixRows.any((r) => r.length != 3)) {
+      throw FormatException(
+          'grading_matrix.rows must be 3×3, got ${matrixRows.map((r) => r.length).toList()}');
+    }
 
-    // Tone curve control points
+    // Tone curve control points — sorted by input so interpolation is valid
+    // regardless of the order they were written in.
     final points = (json['tone_curve']['control_points'] as List)
         .map((p) {
           final m = p as Map<String, dynamic>;
           return ((m['input'] as num).toDouble(), (m['output'] as num).toDouble());
         })
-        .toList(growable: false);
+        .toList()
+      ..sort((a, b) => a.$1.compareTo(b.$1));
+    if (points.isEmpty) {
+      throw const FormatException('tone_curve.control_points must not be empty');
+    }
 
     // Saturation
     final saturation = (json['saturation']['multiplier'] as num).toDouble();
@@ -140,7 +158,7 @@ class BaselineProfile {
       version:     json['version']     as String,
       description: json['description'] as String,
       gradingMatrix:         matrixRows,
-      toneCurvePoints:       points,
+      toneCurvePoints:       List.unmodifiable(points),
       saturationMultiplier:  saturation,
       vignetteEnabled:       vig['enabled']  as bool,
       vignetteStrength:      (vig['strength'] as num).toDouble(),
